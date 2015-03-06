@@ -1,0 +1,99 @@
+Physics assignment, R&S&JM
+
+- Unified Particle Physics for Real-Time Applications
+ Miles Macklin
+ Matthias M¨uller
+ Nuttapong Chentanez
+ Tae-Yong Kim
+
+
+Implementation of a position based physics system.
+
+Aspects we need to consider:
+1.- Particle physics itself (read papers)
+2.- Implementation 
+  (C++ 11 and C++ AMP)
+  (Shaders & OpenGL)
+3.- Make it a game!
+
+0.- Set up environment:
+  0.a) Set up a VisualStudio Project with openGL (Glut and Glew). DONE!
+  0.b) Set up a Project with an openGL Window. DONE!
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	- Data structure
+A - ALGORITHM:
+  - Start actually working on the Particle physics itself
+	- Start simulation loop
+B - VISUALIZATION:
+  - Work on the shaders
+	- Create a shader reader http://in2gpu.com/2014/10/29/shaders-basics/
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+  0.c) Write rendering shaders.
+    0.c.1) A basic shader to draw floor, wall and other solid objects.
+    0.c.2) A more advanced shader to draw a sphere in the position of each particle.
+    0.c.3) A even more advanced shader to draw the elements:
+      0.c.3.a- A shader to draw each set of particles that represent a rigid
+body, as a rigid body.
+  0.d) Write the library for the RTPS and a small example that will run some examples with our implementation.
+
+1.- Particle physics itself:
+  1.a) Particle representation. (Data structure)
+  1.b) Simulation loop.
+    1.b.1) Check algorithm 1
+    1.b.2) Understand constraints
+    1.b.3) Things to do:
+      1.b.3.a- Find neighbouring particles
+        (Parallel hash-grid)
+      1.b.3.b- Find solid contacts
+      1.b.3.c- Solve contact constraints
+      1.b.3.d- Solve constraints (Gauss-Jacobi & Under-Relaxation and Over-Relaxation)
+      1.b.3.e- Advect diffuse particles?
+  1.c) Rigid bodies
+    1.c.1) Loading rigid bodies
+      1.c.1.a- Solid voxelization of a closed triangle meshes
+      1.c.1.b- Add same phase-identifier, disable collision and add shape-matching constraint
+    1.c.2) Distance field collision
+    1.c.3) Stiff stacks
+    1.c.4) Deformation
+  1.d) Granular materials and friction
+    1.d.1) Friction model
+  1.e) Fluids
+    1.e.1) Fluid-solid (density)
+    1.e.2) Gases
+  1.f) Cloth and ropes 
+  
+2.- Implementation:
+  2.a) Parallel hash-grid (particle neighbor finding!, 1.b.3.a)
+  2.b) Collision with walls and floors (1.b.3.b)
+    (kinematic shapes with convex hulls, distance fields, triangle meshes)
+  2.c) Gather (Particle-centric approach for solving constraints 1.b.3.c and 1.b.3.d)
+    fluid density constraints
+  2.e) Scatter (Constraint-centric approach for solving constraints 1.b.3.c and 1.b.3.d)
+    distance constraints
+  2.f) Rendering
+    2.f.1) OpenGL and Shaders
+      2.f.1.a- Avoid OCTET. Create our own openGL environment.
+      2.f.2.b- User shaders to draw spheres on each particle
+      2.f.2.b- Create shader to draw ground with textures
+      2.f.2.c- Create shader to draw ropes and clothes
+      2.f.2.d- Create shader to draw water
+      2.f.2.e- Create shader to draw gas
+  2.g) User
+    2.g.1) User interface
+      2.g.1.a- Aldo's suggested interface?
+    2.g.2) User interaction
+      2.g.2.a- Mouse or keyboard to control parameters to shoot.
+      2.g.2.b- Mouse, point and click to shoot.
+      2.g.2.c- Mouse, point and click to remove or generate objects.
+      2.g.2.d- Mouse, point and click to drag objects.
+        
+3.- Make it a game!:
+  3.a) Ideas:
+    3.a.1) Throw things to things. http://aminus3.s3.amazonaws.com/image/g0027/u00026791/i01271217/f4f9053b4bd2a38f60123728fb6cefca_large.jpg
+    3.a.2) Sandbox game.
+    3.a.3) Build a castle and then shoot at it.
+
+
