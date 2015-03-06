@@ -1,14 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// (C) Andy Thomason 2012-2014
+// (C) Juanmi, Ryan and Sam 2015
 //
-// Modular Framework for OpenGLES2 rendering on multiple platforms.
-//
+
+#include <vector>
+
 namespace octet {
   /// Scene containing a box with octet.
   class RTUPPS : public app {
-    // scene for drawing box
-    ref<visual_scene> app_scene;
 
     struct Particle{
       vec3 position;
@@ -17,22 +16,25 @@ namespace octet {
       uint32_t phase;
     };
 
+    // scene for drawing box
+    ref<visual_scene> app_scene;
+
+    std::vector<Particle> particles;
+
   public:
     /// this is called when we construct the class before everything is initialised.
     RTUPPS(int argc, char **argv) : app(argc, argv) {
     }
 
-
     /// this is called once OpenGL is initialized
     void app_init() {
+      
+      Particle p;
+      p.position = vec3(0.0f);
+      material *mat;
+       
       app_scene = new visual_scene();
-      app_scene->create_default_camera_and_lights();
-
-      material *red = new material(vec4(1, 0, 0, 1));
-      mesh_box *box = new mesh_box(vec3(4));
-      scene_node *node = new scene_node();
-      app_scene->add_child(node);
-      app_scene->add_mesh_instance(new mesh_instance(node, box, red));
+      app_scene->create_default_camera_and_lights();  
     }
 
     /// this is called to draw the world
@@ -46,11 +48,6 @@ namespace octet {
 
       // draw the scene
       app_scene->render((float)vx / vy);
-
-      // tumble the box  (there is only one mesh instance)
-      scene_node *node = app_scene->get_mesh_instance(0)->get_node();
-      node->rotate(1, vec3(1, 0, 0));
-      node->rotate(1, vec3(0, 1, 0));
     }
   };
 }
