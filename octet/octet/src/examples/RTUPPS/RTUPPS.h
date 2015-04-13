@@ -3,24 +3,15 @@
 // (C) Juanmi, Ryan and Sam 2015
 //
 
-#include <vector>
+#include "mesh_particles.h"
 
 namespace octet {
   /// Scene containing a box with octet.
   class RTUPPS : public app {
-
-    struct Particle{
-      vec3 position;
-      vec3 velocity;
-      float invmass;
-      uint32_t phase;
-    };
-
     // scene for drawing box
     ref<visual_scene> app_scene;
-
-    std::vector<Particle> particles;
-
+    ref<mesh_particles> my_particles;
+    
   public:
     /// this is called when we construct the class before everything is initialised.
     RTUPPS(int argc, char **argv) : app(argc, argv) {
@@ -28,13 +19,21 @@ namespace octet {
 
     /// this is called once OpenGL is initialized
     void app_init() {
-      
-      Particle p;
-      p.position = vec3(0.0f);
-      material *mat;
        
       app_scene = new visual_scene();
-      app_scene->create_default_camera_and_lights();  
+      app_scene->create_default_camera_and_lights();
+
+      param_shader *shader = new param_shader("shaders/default.vs", "shaders/simple_color.fs");
+      material *red = new material(vec4(1, 0, 0, 0), shader);
+      mesh *box = new mesh_box(vec3(4));
+      scene_node *node = new scene_node();
+      //app_scene->add_child(node);
+      //app_scene->add_mesh_instance(new mesh_instance(node, box, red));
+      my_particles = new mesh_particles();
+      my_particles->init();
+      node = new scene_node();
+      app_scene->add_child(node);
+      app_scene->add_mesh_instance(new mesh_instance(node, my_particles, red));
     }
 
     /// this is called to draw the world
@@ -48,6 +47,12 @@ namespace octet {
 
       // draw the scene
       app_scene->render((float)vx / vy);
+
+      // tumble the box  (there is only one mesh instance)
+      //scene_node *node = app_scene->get_mesh_instance(0)->get_node();
+      //node->rotate(1, vec3(1, 0, 0));
+      //node->rotate(1, vec3(0, 1, 0));
+      my_particles->update();
     }
   };
 }

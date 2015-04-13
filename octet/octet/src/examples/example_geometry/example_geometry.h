@@ -45,7 +45,7 @@ namespace octet {
       size_t num_vertices = num_steps * 2 + 2;
       size_t num_indices = num_steps * 6;
       helix->allocate(sizeof(my_vertex) * num_vertices, sizeof(uint32_t) * num_indices);
-      helix->set_params(sizeof(my_vertex), num_indices, num_vertices, GL_TRIANGLES, GL_UNSIGNED_INT);
+      helix->set_params(sizeof(my_vertex), num_indices, num_vertices, GL_POINTS, GL_UNSIGNED_INT);
 
       // describe the structure of my_vertex to OpenGL
       helix->add_attribute(attribute_pos, 3, GL_FLOAT, 0);
