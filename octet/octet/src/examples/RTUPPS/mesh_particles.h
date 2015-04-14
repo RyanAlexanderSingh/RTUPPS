@@ -117,17 +117,22 @@ namespace octet{
           // Find solid contacts
         }
 
+
         // While iter < stabilizationIterations do
+        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
           // increment praticle = 0, n = 0
           // solve contact constraints for increment particle, n
           // update particle[i] = particle[i] + increment particle/n
           // update particle' = particle' + increment particle/n
+        }
 
         // while iter < solverIterations do
+        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
           // for each constraint group G do
             // increment particle = 0, n = 0
             // solve all contraints in G for increment particle, n
             // update particle' = particle' + increment particle/n
+        }
 
         // for all particles i do
         for (unsigned i = 0; i != num_vertexes; ++i){
