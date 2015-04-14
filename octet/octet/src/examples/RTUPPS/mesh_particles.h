@@ -39,11 +39,15 @@ namespace octet{
       dynarray<particle_basic> particles_basic;
       dynarray<particle_more> particles_more;
       size_t num_vertexes;
+      size_t stabilizationIterations;
+      size_t solverIterations;
     public:
-      mesh_particles(){}
+      mesh_particles() : num_vertexes(0), stabilizationIterations(0), solverIterations(0){}
 
       /// @brief This will initilize the mesh!
-      void init(int type = 0){
+      void init(int type = 0, int n_stabilization = 10, int n_solver = 10){
+        stabilizationIterations = n_stabilization;
+        solverIterations = n_solver;
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < 10; ++i){
             for (int j = 0; j < 10; ++j){
@@ -96,11 +100,43 @@ namespace octet{
         gl_resource::wolock vlock(get_vertices());
         particle_basic* vtx = (particle_basic*)vlock.u8();
 
-        //We go through all the vertexes, changing their y position!
+        //Calculate increment of time
+        float time_inc = 0.1f;
+
+        //Here starts the Algorithm 1 from the Siggraph paper
+        //For all particles i do
         for (unsigned i = 0; i != num_vertexes; ++i){
-          vtx->pos.y() -= 0.01f;
-          ++vtx;
+          // Apply forces v[i] = v[i] + temp_inc*fext(particle[i])
+          // Predict position particle[i]' = particle[i] + temp_inc*v[i]
+          // Apply mass scaling mass[i]' = mass[i]*e^(-k*h(particle[i]'))
         }
+
+        //For all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // Find neighobring particles set
+          // Find solid contacts
+        }
+
+        // While iter < stabilizationIterations do
+          // increment praticle = 0, n = 0
+          // solve contact constraints for increment particle, n
+          // update particle[i] = particle[i] + increment particle/n
+          // update particle' = particle' + increment particle/n
+
+        // while iter < solverIterations do
+          // for each constraint group G do
+            // increment particle = 0, n = 0
+            // solve all contraints in G for increment particle, n
+            // update particle' = particle' + increment particle/n
+
+        // for all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // update velocit v[i] = 1/temp_inc * (particle[i]' - particle[i])
+          // advect diffuse particles
+          // apply internal forces fdrag, fvort
+          // update positions particle[i] = particle[i]' or apply sleeping
+        }
+
       }
     };
   }
