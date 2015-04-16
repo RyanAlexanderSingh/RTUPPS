@@ -6,6 +6,7 @@
 
 #ifndef _MESH_PARTICLES_INCLUDED_
 #define _MESH_PARTICLES_INCLUDED_
+#include <utility>
 #include <chrono>
 #include <ctime>
 
@@ -38,24 +39,28 @@ namespace octet{
     /// This class will ignore the "index" structure in openGL, and will work only with vertices
     /// For the detection of collisions we use a "cell grid". 
     class mesh_particles : public mesh{
-
       dynarray<particle_basic> particles_basic;
       dynarray<particle_more> particles_more;
-      size_t num_vertexes;
+      size_t num_particles;
       size_t stabilizationIterations;
       size_t solverIterations; 
       float particle_radius;
-      std::chrono::time_point<std::chrono::system_clock> before;
+      std::vector<std::pair<uint8_t, uint8_t>> particle_hash; //used for the neighbouring detection
+      std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
 
       /// @brief This function is required for the neighbouring part, to obtain the hash of a particle
-      size_t calculate_hash_particle(int particle_id){
-        return particle_id;
+      std::pair<uint8_t, uint8_t> calculate_hash_particle(int particle_id){
+        std::pair<uint8_t, uint8_t> pair;
+        int cell_id = 0; // need to update this to obtain the cell_id
+        pair.first = cell_id;
+        pair.second = particle_id;
+        return pair;
       }
 
       /// @brief This function will calculate all neighbouring particles for each particle (using particle grid)
       void find_neighbouring_particles(){
-        for (unsigned i = 0; i != num_vertexes; ++i){
-          size_t particleHash = calculate_hash_particle(i);
+        for (unsigned i = 0; i != num_particles; ++i){
+          particle_hash.push_back(calculate_hash_particle(i));
         }
       }
 
@@ -69,7 +74,7 @@ namespace octet{
 
         //Here starts the Algorithm 1 from the Siggraph paper
         //For all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
+        for (unsigned i = 0; i != num_particles; ++i){
           // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
           float f_ext = 0;
           particles_more[i].vel += time_inc*f_ext;
@@ -92,7 +97,7 @@ namespace octet{
         }
 
         // for all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
+        for (unsigned i = 0; i != num_particles; ++i){
           // update velocit v[i] = 1/temp_inc * (particle[i]' - particle[i])
           // apply velocity confinement and XSPH viscosity
           // update positions particle[i] = particle[i]' or apply sleeping
@@ -109,7 +114,7 @@ namespace octet{
 
         //Here starts the Algorithm 1 from the Siggraph paper
         //For all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
+        for (unsigned i = 0; i != num_particles; ++i){
           // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
           float f_ext = 0;
           particles_more[i].vel += time_inc*f_ext;
@@ -119,7 +124,7 @@ namespace octet{
         }
 
         //For all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
+        for (unsigned i = 0; i != num_particles; ++i){
           // Find neighobring particles set
           // Find solid contacts
         }
@@ -141,7 +146,7 @@ namespace octet{
         }
 
         // for all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
+        for (unsigned i = 0; i != num_particles; ++i){
           // update velocit v[i] = 1/temp_inc * (particle[i]' - particle[i])
           // advect diffuse particles
           // apply internal forces fdrag, fvort
@@ -149,7 +154,7 @@ namespace octet{
         }
       }
     public:
-      mesh_particles() : num_vertexes(0), stabilizationIterations(0), solverIterations(0){}
+      mesh_particles() : num_particles(0), stabilizationIterations(0), solverIterations(0){}
 
       /// @brief This will initilize the mesh!
       void init(int type = 0, int n_stabilization = 10, int n_solver = 10){
@@ -173,10 +178,10 @@ namespace octet{
           }
         }
         // Add particles to the mesh
-        num_vertexes = particles_basic.size();
-        size_t num_indices = particles_basic.size();
-        allocate(sizeof(particle_basic) * num_vertexes, sizeof(uint32_t)*num_indices);
-        set_params(sizeof(particle_basic), num_indices, num_vertexes, GL_POINTS, GL_UNSIGNED_INT);
+        num_particles = particles_basic.size();
+        num_particles = particles_basic.size();
+        allocate(sizeof(particle_basic) * num_particles, sizeof(uint32_t)*num_particles);
+        set_params(sizeof(particle_basic), num_particles, num_particles, GL_POINTS, GL_UNSIGNED_INT);
         //This will set up the attributes with position and color!
         clear_attributes();
         add_attribute(attribute_pos, 3, GL_FLOAT, 0);
@@ -187,7 +192,7 @@ namespace octet{
         particle_basic* vtx = (particle_basic*)vlock.u8();
         gl_resource::wolock ilock(get_indices());
         uint32_t* idx = ilock.u32();
-        for (unsigned i = 0; i != num_vertexes; ++i){
+        for (unsigned i = 0; i != num_particles; ++i){
           vtx->pos = particles_basic[i].pos;
           if (particles_basic[i].phase == 0)
             vtx->phase = make_color(1.f,0.0f,0.0f);
@@ -213,7 +218,7 @@ namespace octet{
         particle_basic* vtx = (particle_basic*)vlock.u8();
 
         //This updates the position with the new position calculated in the simulation before
-        for (unsigned i = 0; i != num_vertexes; ++i){
+        for (unsigned i = 0; i != num_particles; ++i){
           vtx->pos = particles_basic[i].pos;
         }
       }
