@@ -44,7 +44,7 @@ namespace octet{
       size_t num_vertexes;
       size_t stabilizationIterations;
       size_t solverIterations; 
-      float particle_size;
+      float particle_size; // this refeers to the radius of the particle
       std::chrono::time_point<std::chrono::system_clock> before;
 
       /// @brief This is the simulation loop for only fluid simulation
@@ -142,7 +142,7 @@ namespace octet{
       mesh_particles() : num_vertexes(0), stabilizationIterations(0), solverIterations(0){}
 
       /// @brief This will initilize the mesh!
-      void init(int type = 0, int n_stabilization = 10, int n_solver = 10, float n_particle_size = 1.0f){
+      void init(int type = 0, int n_stabilization = 10, int n_solver = 10, float n_particle_size = 0.5f){
         stabilizationIterations = n_stabilization;
         solverIterations = n_solver;
         particle_size = n_particle_size;
