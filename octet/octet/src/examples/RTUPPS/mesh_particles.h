@@ -44,8 +44,100 @@ namespace octet{
       size_t num_vertexes;
       size_t stabilizationIterations;
       size_t solverIterations; 
-      
       std::chrono::time_point<std::chrono::system_clock> before;
+
+      /// @brief This is the simulation loop for only fluid simulation
+      void simulation_fluids(){
+        //Calculate increment of time
+        std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+        std::chrono::duration<float> elapsed_seconds = now - before;
+        before = now;
+        float time_inc = elapsed_seconds.count();
+
+
+        //Here starts the Algorithm 1 from the Siggraph paper
+        //For all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
+          float f_ext = 0;
+          particles_more[i].vel += time_inc*f_ext;
+          // Predict position particle[i]' = particle[i] + time_inc*v[i]
+          particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
+        }
+
+        //For all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // Find neighobring particles set
+        }
+
+        // while iter < solverIterations do
+        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
+          // for all particles i do
+            // Calculate lambda
+          // for all particles i do
+            // Calculate increment position
+            // perform collision detection and reponse
+          // for all particles i do
+            // update new position
+        }
+
+        // for all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // update velocit v[i] = 1/temp_inc * (particle[i]' - particle[i])
+          // apply velocity confinement and XSPH viscosity
+          // update positions particle[i] = particle[i]' or apply sleeping
+        }
+      }
+
+      /// @brief This is a candidate for the simulation of all type of particles
+      void simulation_all(){
+        //Calculate increment of time
+        std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+        std::chrono::duration<float> elapsed_seconds = now - before;
+        before = now;
+        float time_inc = elapsed_seconds.count();
+
+        //Here starts the Algorithm 1 from the Siggraph paper
+        //For all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
+          float f_ext = 0;
+          particles_more[i].vel += time_inc*f_ext;
+          // Predict position particle[i]' = particle[i] + time_inc*v[i]
+          particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
+          // Apply mass scaling mass[i]' = mass[i]*e^(-k*h(particle[i]'))
+        }
+
+        //For all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // Find neighobring particles set
+          // Find solid contacts
+        }
+
+        // While iter < stabilizationIterations do
+        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
+          // increment praticle = 0, n = 0
+          // solve contact constraints for increment particle, n
+          // update particle[i] = particle[i] + increment particle/n
+          // update particle' = particle' + increment particle/n
+        }
+
+        // while iter < solverIterations do
+        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
+          // for each constraint group G do
+          // increment particle = 0, n = 0
+          // solve all contraints in G for increment particle, n
+          // update particle' = particle' + increment particle/n
+        }
+
+        // for all particles i do
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          // update velocit v[i] = 1/temp_inc * (particle[i]' - particle[i])
+          // advect diffuse particles
+          // apply internal forces fdrag, fvort
+          // update positions particle[i] = particle[i]' or apply sleeping
+        }
+      }
     public:
       mesh_particles() : num_vertexes(0), stabilizationIterations(0), solverIterations(0){}
 
@@ -101,58 +193,18 @@ namespace octet{
 
       /// @brief This functions is where the "simulation" loop has to be written! 
       void update(){
+
+        //We call the simulation fluids, that will be the algorithm for fluid simulation
+        simulation_fluids();
+
         //This two lines take control on the points so we can modify them
         gl_resource::wolock vlock(get_vertices());
         particle_basic* vtx = (particle_basic*)vlock.u8();
 
-        //Calculate increment of time
-        std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-        std::chrono::duration<float> elapsed_seconds = now - before;
-        before = now;
-        float time_inc = elapsed_seconds.count();
-
-        //Here starts the Algorithm 1 from the Siggraph paper
-        //For all particles i do
+        //This updates the position with the new position calculated in the simulation before
         for (unsigned i = 0; i != num_vertexes; ++i){
-          // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
-          float f_ext = 0;
-          particles_more[i].vel += time_inc*f_ext;
-          // Predict position particle[i]' = particle[i] + time_inc*v[i]
-          particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
-          // Apply mass scaling mass[i]' = mass[i]*e^(-k*h(particle[i]'))
+          vtx->pos = particles_basic[i].pos;
         }
-
-        //For all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
-          // Find neighobring particles set
-          // Find solid contacts
-        }
-
-
-        // While iter < stabilizationIterations do
-        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
-          // increment praticle = 0, n = 0
-          // solve contact constraints for increment particle, n
-          // update particle[i] = particle[i] + increment particle/n
-          // update particle' = particle' + increment particle/n
-        }
-
-        // while iter < solverIterations do
-        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
-          // for each constraint group G do
-            // increment particle = 0, n = 0
-            // solve all contraints in G for increment particle, n
-            // update particle' = particle' + increment particle/n
-        }
-
-        // for all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
-          // update velocit v[i] = 1/temp_inc * (particle[i]' - particle[i])
-          // advect diffuse particles
-          // apply internal forces fdrag, fvort
-          // update positions particle[i] = particle[i]' or apply sleeping
-        }
-
       }
     };
   }
