@@ -10,8 +10,7 @@
 #include <ctime>
 
 namespace octet{
-  enum {_NUM_PARTICLES_ = 1000};
-
+  enum {_NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 500};
 
   // this function converts three floats into a RGBA 8 bit color
   static uint32_t make_color(float r, float g, float b) {
@@ -37,6 +36,7 @@ namespace octet{
     /// @brief This is the class mesh_particles. This class contains a mesh with a set of particles with RTUPPS
     /// This class contains it's own data structure to define the vetices of the mesh
     /// This class will ignore the "index" structure in openGL, and will work only with vertices
+    /// For the detection of collisions we use a "cell grid". 
     class mesh_particles : public mesh{
 
       dynarray<particle_basic> particles_basic;
@@ -44,11 +44,19 @@ namespace octet{
       size_t num_vertexes;
       size_t stabilizationIterations;
       size_t solverIterations; 
-      float particle_size; // this refeers to the radius of the particle
+      float particle_radius;
       std::chrono::time_point<std::chrono::system_clock> before;
 
-      void find_neighbouring_particles(){
+      /// @brief This function is required for the neighbouring part, to obtain the hash of a particle
+      size_t calculate_hash_particle(int particle_id){
+        return particle_id;
+      }
 
+      /// @brief This function will calculate all neighbouring particles for each particle (using particle grid)
+      void find_neighbouring_particles(){
+        for (unsigned i = 0; i != num_vertexes; ++i){
+          size_t particleHash = calculate_hash_particle(i);
+        }
       }
 
       /// @brief This is the simulation loop for only fluid simulation
@@ -144,10 +152,10 @@ namespace octet{
       mesh_particles() : num_vertexes(0), stabilizationIterations(0), solverIterations(0){}
 
       /// @brief This will initilize the mesh!
-      void init(int type = 0, int n_stabilization = 10, int n_solver = 10, float n_particle_size = 0.5f){
+      void init(int type = 0, int n_stabilization = 10, int n_solver = 10){
         stabilizationIterations = n_stabilization;
         solverIterations = n_solver;
-        particle_size = n_particle_size;
+        particle_radius = _PARTICLE_DIAM * 0.5f;
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < 10; ++i){
             for (int j = 0; j < 10; ++j){
