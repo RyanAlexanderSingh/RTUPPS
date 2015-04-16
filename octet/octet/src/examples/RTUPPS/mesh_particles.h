@@ -6,6 +6,8 @@
 
 #ifndef _MESH_PARTICLES_INCLUDED_
 #define _MESH_PARTICLES_INCLUDED_
+#include <chrono>
+#include <ctime>
 
 namespace octet{
   enum {_NUM_PARTICLES_ = 1000};
@@ -40,7 +42,9 @@ namespace octet{
       dynarray<particle_more> particles_more;
       size_t num_vertexes;
       size_t stabilizationIterations;
-      size_t solverIterations;
+      size_t solverIterations; 
+      
+      std::chrono::time_point<std::chrono::system_clock> before;
     public:
       mesh_particles() : num_vertexes(0), stabilizationIterations(0), solverIterations(0){}
 
@@ -101,7 +105,10 @@ namespace octet{
         particle_basic* vtx = (particle_basic*)vlock.u8();
 
         //Calculate increment of time
-        float time_inc = 0.1f;
+        std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+        std::chrono::duration<float> elapsed_seconds = now - before;
+        before = now;
+        float time_inc = elapsed_seconds.count();
 
         //Here starts the Algorithm 1 from the Siggraph paper
         //For all particles i do
