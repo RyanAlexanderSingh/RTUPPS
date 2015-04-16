@@ -27,6 +27,7 @@ namespace octet{
 
   /// @brief This particle_more contains more information needed to run the simulation
   struct particle_more{
+    vec3 pos_predicted;
     vec3 vel;
     float invmass;
   };
@@ -113,8 +114,11 @@ namespace octet{
         //Here starts the Algorithm 1 from the Siggraph paper
         //For all particles i do
         for (unsigned i = 0; i != num_vertexes; ++i){
-          // Apply forces v[i] = v[i] + temp_inc*fext(particle[i])
-          // Predict position particle[i]' = particle[i] + temp_inc*v[i]
+          // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
+          float f_ext = 0;
+          particles_more[i].vel += time_inc*f_ext;
+          // Predict position particle[i]' = particle[i] + time_inc*v[i]
+          particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
           // Apply mass scaling mass[i]' = mass[i]*e^(-k*h(particle[i]'))
         }
 
