@@ -51,7 +51,7 @@ namespace octet{
       /// @brief This function is required for the neighbouring part, to obtain the hash of a particle
       std::pair<uint8_t, uint8_t> calculate_hash_particle(int particle_id){
         std::pair<uint8_t, uint8_t> pair;
-        int cell_id = 0; // need to update this to obtain the cell_id
+        int cell_id = 0; // TO DO!!! need to update this to obtain the cell_id
         pair.first = cell_id;
         pair.second = particle_id;
         return pair;
@@ -62,9 +62,13 @@ namespace octet{
         for (unsigned i = 0; i != num_particles; ++i){
           particle_hash.push_back(calculate_hash_particle(i));
         }
+        // TO DO!!!!
+        //http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
+        // Attempting the "Building the Grid using Sorting"
       }
 
-      /// @brief This is the simulation loop for only fluid simulation
+      /// @brief This is the simulation loop for only fluid simulation 
+      /// http://mmacklin.com/pbf_sig_preprint.pdf
       void simulation_fluids(){
         //Calculate increment of time
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
