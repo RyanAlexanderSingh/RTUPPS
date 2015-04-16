@@ -47,6 +47,10 @@ namespace octet{
       float particle_size; // this refeers to the radius of the particle
       std::chrono::time_point<std::chrono::system_clock> before;
 
+      void find_neighbouring_particles(){
+
+      }
+
       /// @brief This is the simulation loop for only fluid simulation
       void simulation_fluids(){
         //Calculate increment of time
@@ -65,10 +69,8 @@ namespace octet{
           particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
         }
 
-        //For all particles i do
-        for (unsigned i = 0; i != num_vertexes; ++i){
-          // Find neighobring particles set
-        }
+        //Find neighbouring particles
+        find_neighbouring_particles();
 
         // while iter < solverIterations do
         for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
