@@ -9,6 +9,7 @@
 #include <utility>
 #include <chrono>
 #include <ctime>
+#include <math.h>
 
 namespace octet{
   enum {_NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 500};
@@ -125,6 +126,10 @@ namespace octet{
           // Predict position particle[i]' = particle[i] + time_inc*v[i]
           particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
           // Apply mass scaling mass[i]' = mass[i]*e^(-k*h(particle[i]'))
+          float e = 2.71828f; //base of natural logarithms
+          int k = 3; //coefficient k (set values from 1 to 5)
+          float h = particles_more[i].pos_predicted.y();
+          particles_more[i].invmass = particles_more[i].invmass * pow(e, (-k * h));
         }
 
         //For all particles i do
