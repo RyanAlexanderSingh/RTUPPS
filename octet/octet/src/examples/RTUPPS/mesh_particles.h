@@ -53,13 +53,9 @@ namespace octet{
 
 
       /// @brief This function is required for the neighbouring part, to obtain the hash of a particle
-      std::pair<uint8_t, uint8_t> calculate_hash_particle(int particle_id){
+      std::pair<uint8_t, uint8_t> calculate_hash_particle(unsigned int particle_id, unsigned int cell_index){
         std::pair<uint8_t, uint8_t> pair;
-        int cell_id = 0; // TO DO!!! need to update this to obtain the cell_id
-        // plan here is to break the 'world' or simulation environment into cells of the same size as the 
-        // diameter of each particle, this could be altered
-
-        pair.first = cell_id;
+        pair.first = cell_index;
         pair.second = particle_id;
         return pair;
       }
@@ -69,21 +65,26 @@ namespace octet{
       /// indexing increases in x, y then z respectively
       void update_particle_grid(){
         // reset the particle count for each cell
-        grid_particle_count.clear();
+        grid_particle_count.assign(std::pow(_GRID_SIZE * 2, 3), 0); // reset cell particle counts to zero
+        grid_particle_hash.clear(); // this should be changed to be an access and change rather than a clear and create
         // for each particle in the particle list determine its cell index
+        unsigned int particle_id = 0;
         for each (particle_basic pb in particles_basic){
           int cell_index = 0;
           cell_index += std::floor((pb.pos.x() + _GRID_SIZE) / _PARTICLE_DIAM);
           cell_index += _GRID_SIZE * 2 * std::floor((pb.pos.y() + _GRID_SIZE) / _PARTICLE_DIAM);
           cell_index += std::pow(_GRID_SIZE * 2, 2) * std::floor((pb.pos.z() + _GRID_SIZE) / _PARTICLE_DIAM);
-          printf("cell index: %i\n", cell_index);
+          //printf("cell index: %i\n", cell_index);
+          grid_particle_count[cell_index]++; // increment the number of particles in that particular cell;
+          grid_particle_hash.push_back(calculate_hash_particle(particle_id, cell_index));
+          ++particle_id;
         }
       }
 
       /// @brief This function will calculate all neighbouring particles for each particle (using particle grid)
       void find_neighbouring_particles(){
         for (unsigned i = 0; i != num_particles; ++i){
-          grid_particle_hash.push_back(calculate_hash_particle(i));
+          //grid_particle_hash.push_back(calculate_hash_particle(i));
         }
         // TO DO!!!!
         //http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
@@ -188,12 +189,12 @@ namespace octet{
       mesh_particles() : num_particles(0), stabilizationIterations(0), solverIterations(0){}
 
       /// @brief This will initilize the mesh!
-      void init(int type = 0, int n_stabilization = 10, int n_solver = 10){
+      void init(int type = 1, int n_stabilization = 10, int n_solver = 10){
         stabilizationIterations = n_stabilization;
         solverIterations = n_solver;
         particle_radius = _PARTICLE_DIAM * 0.5f;
         int num_particles = 1;
-        grid_particle_count.reserve(sizeof(int) * std::pow(num_particles, 3));
+        grid_particle_count.assign(std::pow(_GRID_SIZE *2, 3), 0);  // assign all values inside vector 0;
 
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < num_particles; ++i){
@@ -213,12 +214,18 @@ namespace octet{
         }
         else { // used for testing grid particle location and postions
           particle_basic new_particle;
-          new_particle.pos = vec3(0.5f, 0.5f, 0.5f);
+          new_particle.pos = vec3(0.5f, 0.5f, 0.5f); // should be 555 
           new_particle.phase = 0;
           particles_basic.push_back(new_particle);
-          new_particle.pos = vec3(-4.5f, -4.5f, -4.5f);
+          new_particle.pos = vec3(-4.5f, -4.5f, -4.5f); // should be 0
           particles_basic.push_back(new_particle);
-          new_particle.pos = vec3(4.5f, 4.5f, 4.5f);
+          new_particle.pos = vec3(4.5f, 4.5f, 4.5f);    // should be 999 
+          particles_basic.push_back(new_particle);
+          new_particle.pos = vec3(-3.5f, -4.5f, -4.5f); // should be 1
+          particles_basic.push_back(new_particle);
+          new_particle.pos = vec3(-4.5f, -3.5f, -4.5f); // should be 10
+          particles_basic.push_back(new_particle);
+          new_particle.pos = vec3(-4.5f, -4.5f, -3.5f); // should be 100
           particles_basic.push_back(new_particle);
         }
         // Add particles to the mesh
@@ -245,6 +252,8 @@ namespace octet{
           *idx = i;
           ++idx;
         }
+
+        update_particle_grid();
       }
 
       /// Serialise

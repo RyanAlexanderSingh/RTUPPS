@@ -30,7 +30,7 @@ namespace octet {
       //app_scene->add_child(node);
       //app_scene->add_mesh_instance(new mesh_instance(node, box, red));
       my_particles = new mesh_particles();
-      my_particles->init(1);
+      my_particles->init();
       node = new scene_node();
       app_scene->add_child(node);
       app_scene->add_mesh_instance(new mesh_instance(node, my_particles, red));
