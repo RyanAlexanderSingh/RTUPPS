@@ -51,19 +51,12 @@ namespace octet{
       std::vector<std::pair<uint8_t, uint8_t>> grid_particle_hash; // used to store the cell grid location of each particle
       std::vector<int> grid_particle_count; // used to store the number of particles per grid cell (should be capped)
 
-
-      /// @brief This function is required for the neighbouring part, to obtain the hash of a particle
-      std::pair<uint8_t, uint8_t> calculate_hash_particle(unsigned int particle_id, unsigned int cell_index){
-        std::pair<uint8_t, uint8_t> pair;
-        pair.first = cell_index;
-        pair.second = particle_id;
-        return pair;
-      }
-
       /// @brief This function updates the particle locations within the discrete grid,
       /// cell indexing starts at 0 when x = y = z = -gridsize * cell_diameter
       /// indexing increases in x, y then z respectively
-      void update_particle_grid(){
+      // http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
+      // Attempting the "Building the Grid using Sorting"
+      void find_neighbouring_particles(){
         // reset the particle count for each cell
         grid_particle_count.assign(std::pow(_GRID_SIZE * 2, 3), 0); // reset cell particle counts to zero
         grid_particle_hash.clear(); // this should be changed to be an access and change rather than a clear and create
@@ -76,19 +69,9 @@ namespace octet{
           cell_index += std::pow(_GRID_SIZE * 2, 2) * std::floor((pb.pos.z() + _GRID_SIZE) / _PARTICLE_DIAM);
           //printf("cell index: %i\n", cell_index);
           grid_particle_count[cell_index]++; // increment the number of particles in that particular cell;
-          grid_particle_hash.push_back(calculate_hash_particle(particle_id, cell_index));
+          grid_particle_hash.push_back(std::pair<uint8_t, uint8_t> (particle_id, cell_index));
           ++particle_id;
         }
-      }
-
-      /// @brief This function will calculate all neighbouring particles for each particle (using particle grid)
-      void find_neighbouring_particles(){
-        for (unsigned i = 0; i != num_particles; ++i){
-          //grid_particle_hash.push_back(calculate_hash_particle(i));
-        }
-        // TO DO!!!!
-        //http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
-        // Attempting the "Building the Grid using Sorting"
       }
 
       /// @brief This is the simulation loop for only fluid simulation 
@@ -132,59 +115,6 @@ namespace octet{
         }
       }
 
-      /// @brief This is a candidate for the simulation of all type of particles
-      void simulation_all(){
-        //Calculate increment of time
-        std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-        std::chrono::duration<float> elapsed_seconds = now - before;
-        before = now;
-        float time_inc = elapsed_seconds.count();
-
-        //Here starts the Algorithm 1 from the Siggraph paper
-        //For all particles i do
-        for (unsigned i = 0; i != num_particles; ++i){
-          // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
-          float f_ext = 0;
-          particles_more[i].vel += time_inc*f_ext;
-          // Predict position particle[i]' = particle[i] + time_inc*v[i]
-          particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
-          // Apply mass scaling mass[i]' = mass[i]*e^(-k*h(particle[i]'))
-          float e = 2.71828f; //base of natural logarithms
-          int k = 3; //coefficient k (set values from 1 to 5)
-          float h = particles_more[i].pos_predicted.y();
-          particles_more[i].invmass = particles_more[i].invmass * pow(e, (-k * h));
-        }
-
-        //For all particles i do
-        for (unsigned i = 0; i != num_particles; ++i){
-          // Find neighobring particles set 
-          // Find solid contacts using particle set found above
-        }
-
-        // While iter < stabilizationIterations do
-        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
-          // increment praticle = 0, n = 0
-          // solve contact constraints for increment particle, n
-          // update particle[i] = particle[i] + increment particle/n
-          // update particle' = particle' + increment particle/n
-        }
-
-        // while iter < solverIterations do
-        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
-          // for each constraint group G do
-          // increment particle = 0, n = 0
-          // solve all contraints in G for increment particle, n
-          // update particle' = particle' + increment particle/n
-        }
-
-        // for all particles i do
-        for (unsigned i = 0; i != num_particles; ++i){
-          // update velocity v[i] = 1/temp_inc * (particle[i]' - particle[i])
-          // advect diffuse particles, I think this is for fluid particles only
-          // apply internal forces fdrag, fvort
-          // update positions particle[i] = particle[i]' or apply sleeping
-        }
-      }
     public:
       mesh_particles() : num_particles(0), stabilizationIterations(0), solverIterations(0){}
 
@@ -253,7 +183,7 @@ namespace octet{
           ++idx;
         }
 
-        update_particle_grid();
+        find_neighbouring_particles();
       }
 
       /// Serialise
@@ -263,9 +193,6 @@ namespace octet{
 
       /// @brief This functions is where the "simulation" loop has to be written! 
       void update(){
-        // update particle grid positions
-        update_particle_grid();
-
         //We call the simulation fluids, that will be the algorithm for fluid simulation
         simulation_fluids();
 
