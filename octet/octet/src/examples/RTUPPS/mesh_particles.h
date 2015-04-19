@@ -134,7 +134,8 @@ namespace octet{
 
         //For all particles i do
         for (unsigned i = 0; i != num_particles; ++i){
-          // Find neighobring particles set
+          // Find neighbouring particles set
+
           // Find solid contacts
         }
 
