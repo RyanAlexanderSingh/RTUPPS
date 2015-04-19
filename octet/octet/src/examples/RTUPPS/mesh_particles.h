@@ -99,12 +99,18 @@ namespace octet{
         // while iter < solverIterations do
         for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
           // for all particles i do
-          // Calculate lambda
+          for (unsigned i = 0; i != num_particles; ++i){
+            // Calculate lambda
+          }
           // for all particles i do
-          // Calculate increment position
-          // perform collision detection and reponse
+          for (unsigned i = 0; i != num_particles; ++i){
+            // Calculate increment position
+            // perform collision detection and reponse
+          }
           // for all particles i do
-          // update new position
+          for (unsigned i = 0; i != num_particles; ++i){
+            // update new position
+          }
         }
 
         // for all particles i do
