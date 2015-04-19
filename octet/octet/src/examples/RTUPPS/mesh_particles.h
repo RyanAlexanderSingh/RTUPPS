@@ -13,7 +13,7 @@
 
 namespace octet{
   // grid size determines the half extents of the simulation space (ie 50 -> cube with 100 cells in each dimension)
-  enum {_NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 5};
+  enum { _NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 5 };
 
   // this function converts three floats into a RGBA 8 bit color
   static uint32_t make_color(float r, float g, float b) {
@@ -45,7 +45,7 @@ namespace octet{
       dynarray<particle_more> particles_more;
       size_t num_particles;
       size_t stabilizationIterations;
-      size_t solverIterations; 
+      size_t solverIterations;
       float particle_radius;
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::vector<std::pair<uint8_t, uint8_t>> grid_particle_hash; // used to store the cell grid location of each particle
@@ -116,12 +116,12 @@ namespace octet{
         // while iter < solverIterations do
         for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
           // for all particles i do
-            // Calculate lambda
+          // Calculate lambda
           // for all particles i do
-            // Calculate increment position
-            // perform collision detection and reponse
+          // Calculate increment position
+          // perform collision detection and reponse
           // for all particles i do
-            // update new position
+          // update new position
         }
 
         // for all particles i do
@@ -194,14 +194,14 @@ namespace octet{
         solverIterations = n_solver;
         particle_radius = _PARTICLE_DIAM * 0.5f;
         int num_particles = 1;
-        grid_particle_count.assign(std::pow(_GRID_SIZE *2, 3), 0);  // assign all values inside vector 0;
+        grid_particle_count.assign(std::pow(_GRID_SIZE * 2, 3), 0);  // assign all values inside vector 0;
 
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < num_particles; ++i){
             for (int j = 0; j < num_particles; ++j){
               for (int k = 0; k < num_particles; ++k){
                 particle_basic new_particle;
-                new_particle.pos = vec3(i-5, k-5, j-5);
+                new_particle.pos = vec3(i - 5, k - 5, j - 5);
                 new_particle.phase = 0;
                 particles_basic.push_back(new_particle);
                 particle_more more_particle;
@@ -247,7 +247,7 @@ namespace octet{
         for (unsigned i = 0; i != num_particles; ++i){
           vtx->pos = particles_basic[i].pos;
           if (particles_basic[i].phase == 0)
-            vtx->phase = make_color(1.f,0.0f,0.0f);
+            vtx->phase = make_color(1.f, 0.0f, 0.0f);
           ++vtx;
           *idx = i;
           ++idx;
