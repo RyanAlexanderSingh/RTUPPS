@@ -98,9 +98,10 @@ namespace octet{
 
         // while iter < solverIterations do
         for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
+          std::array<float, _NUM_PARTICLES_> lambda;
           // for all particles i do
           for (unsigned i = 0; i != num_particles; ++i){
-            // Calculate lambda
+            // Calculate lambda (aka Scaling Factor)
           }
           // for all particles i do
           for (unsigned i = 0; i != num_particles; ++i){
@@ -109,7 +110,7 @@ namespace octet{
           }
           // for all particles i do
           for (unsigned i = 0; i != num_particles; ++i){
-            // update new position
+            // update estimated position with the increment
           }
         }
 
