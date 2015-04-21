@@ -32,6 +32,7 @@ namespace octet{
     vec3 pos_predicted;
     vec3 vel;
     float invmass;
+    float mass;
   };
 
   namespace scene{
@@ -74,6 +75,29 @@ namespace octet{
         }
       }
 
+      /// @brief This is the kernel function to stimate the density
+      /// This can be done following this paper
+      /// http://www.physics.umu.se/digitalAssets/60/60425_constraint-fluids-ieee.pdf
+      /// and this wikipedia link
+      /// http://en.wikipedia.org/wiki/Kernel_smoother
+      float kernel_function(unsigned i, unsigned j){
+        return 0.5f;
+      }
+
+      /// @brief This function will obtain the scaling factor for the id_particle particle
+      /// To solve this we have to implement equation (11) from the paper
+      float obtain_scaling_factor(unsigned i){
+        float epsilon = 1.0f; //Relaxation parameter
+        //Obtain density constraint
+        float density_estimator = 0.0f;
+        for (unsigned j = 0; j != num_particles; ++j){ // <= THIS LINE IS WRONG. Has to be done with the neighbour particles only! FIX!
+          density_estimator += particles_more[j].mass*kernel_function(i,j);
+        }
+        float density_constraint = 0.0f;
+        float gradient_constraint_sum = 0.0f;
+
+      }
+
       /// @brief This is the simulation loop for only fluid simulation 
       /// http://mmacklin.com/pbf_sig_preprint.pdf
       void simulation_fluids(){
@@ -102,6 +126,7 @@ namespace octet{
           // for all particles i do
           for (unsigned i = 0; i != num_particles; ++i){
             // Calculate lambda (aka Scaling Factor)
+            lambda[i] = obtain_scaling_factor(i);
           }
           // for all particles i do
           for (unsigned i = 0; i != num_particles; ++i){
