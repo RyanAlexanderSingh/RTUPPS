@@ -31,6 +31,7 @@ namespace octet{
   struct particle_more{
     vec3 pos_predicted;
     vec3 vel;
+    unsigned cell_id;
     float invmass;
     float mass;
   };
@@ -60,15 +61,15 @@ namespace octet{
       void find_neighbouring_particles(std::vector<int> &neighbouring_particles, int particle_id){
         // find cell index of the given particle
         int particle_cell_index = grid_particle_hash[particle_id].second;
-        printf("cell_index: %i\n", particle_cell_index);
-        printf("part_id: %i\n", particle_id);
+        //printf("cell_index: %i\n", particle_cell_index);
+        //printf("part_id: %i\n", particle_id);
 
         // check whether this particular particle has any neighbouring particles
         for (int k = -1; k != 2; ++k){  // loops over cells in z _GRID_SIZE ^ 2 for each increment
           for (int j = -1; j != 2; ++j){  // loops over cells in y _GRID_SIZE for each increment
             for (int i = -1; i != 2; ++i){ // loops over cells in x 1 for each increment
               int cell_id = particle_cell_index + k * std::pow((int)_GRID_SIZE, 2) + j * _GRID_SIZE + i;
-              printf("cell_id: %i\n", cell_id);
+              //printf("cell_id: %i\n", cell_id);
               // if there are particles in the selcted cell add their ids to the neighbours vector
               if (cell_id < 0)
                 break;
