@@ -31,6 +31,7 @@ namespace octet{
   struct particle_more{
     vec3 pos_predicted;
     vec3 vel;
+    unsigned cell_id;
     float invmass;
     float mass;
   };
@@ -71,6 +72,7 @@ namespace octet{
           //printf("cell index: %i\n", cell_index);
           grid_particle_count[cell_index]++; // increment the number of particles in that particular cell;
           grid_particle_hash.push_back(std::pair<uint8_t, uint8_t> (particle_id, cell_index));
+          particles_more[particle_id].cell_id = cell_index;
           ++particle_id;
         }
       }
