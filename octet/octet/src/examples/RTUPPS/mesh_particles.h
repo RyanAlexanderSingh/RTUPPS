@@ -52,13 +52,47 @@ namespace octet{
       std::vector<std::pair<uint8_t, uint8_t>> grid_particle_hash; // used to store the cell grid location of each particle
       std::vector<int> grid_particle_count; // used to store the number of particles per grid cell (should be capped)
 
-      /// @brief This function updates the particle locations within the discrete grid,
-      /// cell indexing starts at 0 when x = y = z = -gridsize * cell_diameter
-      /// indexing increases in x, y then z respectively
+      /// @brief This function updates a vector of particle indices within the simulation loop,
+      // This loop is what is used to run collision calcs on.
+      // This fucntion returns true if the input particle has nearby particles
       // http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
       // Attempting the "Building the Grid using Sorting"
-      void find_neighbouring_particles(){
-        // reset the particle count for each cell
+      void find_neighbouring_particles(std::vector<int> &neighbouring_particles, int particle_id){
+        // find cell index of the given particle
+        int particle_cell_index = grid_particle_hash[particle_id].second;
+        printf("cell_index: %i\n", particle_cell_index);
+        printf("part_id: %i\n", particle_id);
+
+        // check whether this particular particle has any neighbouring particles
+        for (int k = -1; k != 2; ++k){  // loops over cells in z _GRID_SIZE ^ 2 for each increment
+          for (int j = -1; j != 2; ++j){  // loops over cells in y _GRID_SIZE for each increment
+            for (int i = -1; i != 2; ++i){ // loops over cells in x 1 for each increment
+              int cell_id = particle_cell_index + k * std::pow((int)_GRID_SIZE, 2) + j * _GRID_SIZE + i;
+              printf("cell_id: %i\n", cell_id);
+              // if there are particles in the selcted cell add their ids to the neighbours vector
+              if (cell_id < 0)
+                break;
+              int num_neighbours = grid_particle_count[cell_id];
+              if (num_neighbours != 0){
+                for (int index = 0; index != num_neighbours; ++index){ // find the number of particles
+                  for (int part = 0; part != grid_particle_hash.size(); ++part){  // search through the vector of pairs searching whether their cells match, this could be done more efficiently
+                    if (grid_particle_hash[part].second == cell_id && grid_particle_hash[part].first != particle_id){ // avoid adding input particle to neighbours
+                      neighbouring_particles.push_back(grid_particle_hash[part].first);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      /// @brief This fucntion loops through each particle in the simulation and assigns it a cell
+      /// within a 3D grid defined above. This function is to be run once per simulation step and updates
+      /// the grid particle hash and count vectors which are then used by the find_neighbouring particles function
+      /// cell indexing starts at 0 when x = y = z = -gridsize * cell_diameter
+      /// indexing increases in x, y then z respectively
+      void sort_particles_into_grid(){
         grid_particle_count.assign(std::pow(_GRID_SIZE * 2, 3), 0); // reset cell particle counts to zero
         grid_particle_hash.clear(); // this should be changed to be an access and change rather than a clear and create
         // for each particle in the particle list determine its cell index
@@ -70,7 +104,7 @@ namespace octet{
           cell_index += std::pow(_GRID_SIZE * 2, 2) * std::floor((pb.pos.z() + _GRID_SIZE) / _PARTICLE_DIAM);
           //printf("cell index: %i\n", cell_index);
           grid_particle_count[cell_index]++; // increment the number of particles in that particular cell;
-          grid_particle_hash.push_back(std::pair<uint8_t, uint8_t> (particle_id, cell_index));
+          grid_particle_hash.push_back(std::pair<uint8_t, uint8_t>(particle_id, cell_index));
           ++particle_id;
         }
       }
@@ -96,6 +130,7 @@ namespace octet{
         float density_constraint = 0.0f;
         float gradient_constraint_sum = 0.0f;
 
+        return 0.0f; // temporary return value to fix build. Sam
       }
 
       /// @brief This is the simulation loop for only fluid simulation 
@@ -117,8 +152,14 @@ namespace octet{
           particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
         }
 
+        //Sort particles using 3D grid
+        sort_particles_into_grid();
+
         //Find neighbouring particles
-        find_neighbouring_particles();
+        std::vector<int> vec; // stores the particle ids of all neighbouring particles to given particle id.
+        for (int i = 0; i < particles_basic.size(); ++i){
+          find_neighbouring_particles(vec, i); // something needs to be done with this vector, not sure what
+        }
 
         // while iter < solverIterations do
         for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
@@ -215,7 +256,7 @@ namespace octet{
           ++idx;
         }
 
-        find_neighbouring_particles();
+        sort_particles_into_grid();
       }
 
       /// Serialise
