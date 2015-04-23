@@ -76,15 +76,25 @@ namespace octet{
       /// http://www.physics.umu.se/digitalAssets/60/60425_constraint-fluids-ieee.pdf
       /// We are implementing the Poly6 kernel as seen in page 12 of:
       /// http://image.diku.dk/kenny/download/vriphys10_course/sph.pdf
-      float kernel_function_poly6(unsigned i, unsigned j){
-        vec3 distance = particles_basic[i].pos - particles_basic[j].pos;
-        float distancef = distance.length();
-        if (distancef > _SMOOTHING_H_ || distancef < 0.0f) return 0.0f;
+      float kernel_function_poly6(float r){
+        if (r > _SMOOTHING_H_ || r < 0.0f) return 0.0f;
         float h_2 = _SMOOTHING_H_*_SMOOTHING_H_;
-        float distance_2 = distancef*distancef;
+        float r_2 = r*r;
         float left = 315.0f / (64.f * 3.141592f*h_2*h_2);
-        float right = (h_2 - distance_2);
+        float right = (h_2 - r_2);
         return left*right*right*right;
+      }
+
+      /// @brief This is the kernel function to stimate the gradient of the density
+      /// This can be done following this paper
+      /// http://www.physics.umu.se/digitalAssets/60/60425_constraint-fluids-ieee.pdf
+      /// For the gradient kernel for spiky we used http://www8.cs.umu.se/kurser/TDBD24/VT06/lectures/sphsurvivalkit.pdf
+      float gradient_kernel_function_spiky(float r){
+        if (r > _SMOOTHING_H_ || r < 0.0f) return 0.0f;
+        float h_2 = _SMOOTHING_H_ * _SMOOTHING_H_;
+        float left = -45.0f / (3.141592f * h_2 * h_2 * h_2);
+        float right = _SMOOTHING_H_ - r;
+        return left*right*right;
       }
 
       /// @brief This function will obtain the scaling factor for the id_particle particle
@@ -93,15 +103,19 @@ namespace octet{
         float epsilon = 1.0f; //Relaxation parameter
         //Obtain density constraint
         float density_estimator = 0.0f;
+        float gradient_constraint_sum = 0.0f;
         std::vector<uint8_t> * grid_cell = &grid_particles_id[particles_more[i].cell_id];
-        for each (uint8_t j in (*grid_cell)){ 
-          density_estimator += kernel_function_poly6(i, j); //mj*W(pi-pj,h)
+        for each (uint8_t j in (*grid_cell)){
+          vec3 distance = particles_basic[i].pos - particles_basic[j].pos;
+          float distancef = distance.length();
+          density_estimator += kernel_function_poly6(distancef); //W(pi-pj,h)
+          float gradient = gradient_kernel_function_spiky(distancef);
+          gradient_constraint_sum += (gradient*gradient);
         }
         density_estimator *= particle_mass;
         float density_constraint = density_estimator/_REST_DENSITY_ - 1.0f;
-        float gradient_constraint_sum = 0.0f;
 
-        return 0.0f; // temporary return value to fix build. Sam
+        return (-1.0f * density_constraint) / (gradient_constraint_sum + epsilon);
       }
 
       /// @brief This is the simulation loop for only fluid simulation 
