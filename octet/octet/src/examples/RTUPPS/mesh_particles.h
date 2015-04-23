@@ -13,7 +13,7 @@
 
 namespace octet{
   // grid size determines the half extents of the simulation space (ie 50 -> cube with 100 cells in each dimension)
-  enum { _NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 5, _SMOOTHING_H_ = 1 };
+  enum { _NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 5, _SMOOTHING_H_ = 1, _REST_DENSITY_ = 1000 };
 
   // this function converts three floats into a RGBA 8 bit color
   static uint32_t make_color(float r, float g, float b) {
@@ -32,8 +32,6 @@ namespace octet{
     vec3 pos_predicted;
     vec3 vel;
     unsigned cell_id;
-    float invmass;
-    float mass;
   };
 
   namespace scene{
@@ -45,6 +43,8 @@ namespace octet{
     class mesh_particles : public mesh{
       dynarray<particle_basic> particles_basic;
       dynarray<particle_more> particles_more;
+      float particle_mass;
+      float particle_invmass;
       size_t num_particles;
       size_t stabilizationIterations;
       size_t solverIterations;
@@ -76,7 +76,7 @@ namespace octet{
       /// http://www.physics.umu.se/digitalAssets/60/60425_constraint-fluids-ieee.pdf
       /// We are implementing the Poly6 kernel as seen in page 12 of:
       /// http://image.diku.dk/kenny/download/vriphys10_course/sph.pdf
-      float kernel_function(unsigned i, unsigned j){
+      float kernel_function_poly6(unsigned i, unsigned j){
         vec3 distance = particles_basic[i].pos - particles_basic[j].pos;
         float distancef = distance.length();
         if (distancef > _SMOOTHING_H_ || distancef < 0.0f) return 0.0f;
@@ -95,9 +95,10 @@ namespace octet{
         float density_estimator = 0.0f;
         std::vector<uint8_t> * grid_cell = &grid_particles_id[particles_more[i].cell_id];
         for each (uint8_t j in (*grid_cell)){ 
-          density_estimator += particles_more[j].mass*kernel_function(i,j); //mj*W(pi-pj,h)
+          density_estimator += kernel_function_poly6(i, j); //mj*W(pi-pj,h)
         }
-        float density_constraint = 0.0f;
+        density_estimator *= particle_mass;
+        float density_constraint = density_estimator/_REST_DENSITY_ - 1.0f;
         float gradient_constraint_sum = 0.0f;
 
         return 0.0f; // temporary return value to fix build. Sam
@@ -160,6 +161,7 @@ namespace octet{
         stabilizationIterations = n_stabilization;
         solverIterations = n_solver;
         particle_radius = _PARTICLE_DIAM * 0.5f;
+        particle_mass = 1.0f;
         int num_particles = 1;
        
         if (type == 0){          // Initializate the particles with fixed positions
@@ -172,7 +174,6 @@ namespace octet{
                 particles_basic.push_back(new_particle);
                 particle_more more_particle;
                 more_particle.vel = vec3(0, 0, 0);
-                more_particle.invmass = 0.5f;
                 particles_more.push_back(more_particle);
               }
             }
