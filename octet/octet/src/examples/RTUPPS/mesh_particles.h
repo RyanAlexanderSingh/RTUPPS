@@ -13,7 +13,7 @@
 
 namespace octet{
   // grid size determines the half extents of the simulation space (ie 50 -> cube with 100 cells in each dimension)
-  enum { _NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 5 };
+  enum { _NUM_PARTICLES_ = 1000, _PARTICLE_DIAM = 1, _GRID_SIZE = 5, _SMOOTHING_H_ = 1 };
 
   // this function converts three floats into a RGBA 8 bit color
   static uint32_t make_color(float r, float g, float b) {
@@ -74,10 +74,17 @@ namespace octet{
       /// @brief This is the kernel function to stimate the density
       /// This can be done following this paper
       /// http://www.physics.umu.se/digitalAssets/60/60425_constraint-fluids-ieee.pdf
-      /// and this wikipedia link
-      /// http://en.wikipedia.org/wiki/Kernel_smoother
+      /// We are implementing the Poly6 kernel as seen in page 12 of:
+      /// http://image.diku.dk/kenny/download/vriphys10_course/sph.pdf
       float kernel_function(unsigned i, unsigned j){
-        return 0.5f;
+        vec3 distance = particles_basic[i].pos - particles_basic[j].pos;
+        float distancef = distance.length();
+        if (distancef > _SMOOTHING_H_ || distancef < 0.0f) return 0.0f;
+        float h_2 = _SMOOTHING_H_*_SMOOTHING_H_;
+        float distance_2 = distancef*distancef;
+        float left = 315.0f / (64.f * 3.141592f*h_2*h_2);
+        float right = (h_2 - distance_2);
+        return left*right*right*right;
       }
 
       /// @brief This function will obtain the scaling factor for the id_particle particle
@@ -87,8 +94,8 @@ namespace octet{
         //Obtain density constraint
         float density_estimator = 0.0f;
         std::vector<uint8_t> * grid_cell = &grid_particles_id[particles_more[i].cell_id];
-        for each (uint8_t j in (*grid_cell)){ // <= THIS LINE IS WRONG. Has to be done with the neighbour particles only! FIX!
-          density_estimator += particles_more[j].mass*kernel_function(i,j);
+        for each (uint8_t j in (*grid_cell)){ 
+          density_estimator += particles_more[j].mass*kernel_function(i,j); //mj*W(pi-pj,h)
         }
         float density_constraint = 0.0f;
         float gradient_constraint_sum = 0.0f;
@@ -154,8 +161,7 @@ namespace octet{
         solverIterations = n_solver;
         particle_radius = _PARTICLE_DIAM * 0.5f;
         int num_particles = 1;
-        grid_particle_count.assign(std::pow(_GRID_SIZE * 2, 3), 0);  // assign all values inside vector 0;
-
+       
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < num_particles; ++i){
             for (int j = 0; j < num_particles; ++j){
@@ -212,8 +218,6 @@ namespace octet{
           *idx = i;
           ++idx;
         }
-
-        sort_particles_into_grid();
       }
 
       /// Serialise
