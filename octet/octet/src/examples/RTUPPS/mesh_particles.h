@@ -29,9 +29,11 @@ namespace octet{
 
   /// @brief This particle_more contains more information needed to run the simulation
   struct particle_more{
+    unsigned cell_id;
+    float lambda;
     vec3 pos_predicted;
     vec3 vel;
-    unsigned cell_id;
+    vec3 inc_pos;
   };
 
   namespace scene{
@@ -148,6 +150,7 @@ namespace octet{
             // Calculate lambda (aka Scaling Factor)
             lambda[i] = obtain_scaling_factor(i);
           }
+          std::array<float, _NUM_PARTICLES_> increment_position;
           // for all particles i do
           for (unsigned i = 0; i != num_particles; ++i){
             // Calculate increment position
