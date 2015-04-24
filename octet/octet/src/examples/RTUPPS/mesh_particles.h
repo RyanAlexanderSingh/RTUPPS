@@ -46,12 +46,15 @@ namespace octet{
       dynarray<particle_more> particles_more;
       float particle_mass;
       float particle_invmass;
+      float time_inc;    //just making this local as 5 functions use it(can pass through as parameter though) feel free to change
       size_t num_particles;
       size_t stabilizationIterations;
       size_t solverIterations;
       float particle_radius;
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::array<std::vector<uint8_t>, _NUM_PARTICLES_> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
+
+      
 
       /// @brief This function updates a vector of particle indices within the simulation loop,
       // http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
@@ -79,9 +82,22 @@ namespace octet{
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
-        float time_inc = elapsed_seconds.count();
+        time_inc = elapsed_seconds.count();
 
         /// NEW CODE GOES HERE <=
+        apply_external_forces(); //uses time_inc
+
+        apply_viscosity(); //uses time_inc
+
+        advance_particles(); //uses time_inc
+
+        update_neighbours();
+
+        double_density_relaxation(); //uses time_inc
+
+        resolve_collisions();
+
+        update_velocity(); //uses time_inc
       }
 
     public:
