@@ -54,7 +54,25 @@ namespace octet{
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::array<std::vector<uint8_t>, _NUM_PARTICLES_> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
 
-      
+      void apply_external_forces(){
+      }
+
+      void apply_viscosity(){
+      }
+
+      void advance_particles(){
+      }
+
+      void update_neighbours(){
+      }
+
+      void double_density_relaxation(){
+      }
+      void resolve_collisions(){
+      }
+
+      void update_velocity(){
+      }
 
       /// @brief This function updates a vector of particle indices within the simulation loop,
       // http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
@@ -110,7 +128,7 @@ namespace octet{
         particle_radius = _PARTICLE_DIAM * 0.5f;
         particle_mass = 1.0f;
         int num_particles = 1;
-       
+
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < num_particles; ++i){
             for (int j = 0; j < num_particles; ++j){
