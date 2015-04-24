@@ -20,7 +20,6 @@ namespace octet{
     return 0xff000000 + ((int)(r*255.0f) << 0) + ((int)(g*255.0f) << 8) + ((int)(b*255.0f) << 16);
   }
 
-
   /// @brief This particle_basic contains all the info for each particle to be drawn
   struct particle_basic{
     vec3 pos;
@@ -73,53 +72,6 @@ namespace octet{
         }
       }
 
-      /// @brief This is the kernel function to stimate the density
-      /// This can be done following this paper
-      /// http://www.physics.umu.se/digitalAssets/60/60425_constraint-fluids-ieee.pdf
-      /// We are implementing the Poly6 kernel as seen in page 12 of:
-      /// http://image.diku.dk/kenny/download/vriphys10_course/sph.pdf
-      float kernel_function_poly6(float r){
-        if (r > _SMOOTHING_H_ || r < 0.0f) return 0.0f;
-        float h_2 = _SMOOTHING_H_*_SMOOTHING_H_;
-        float r_2 = r*r;
-        float left = 315.0f / (64.f * 3.141592f*h_2*h_2);
-        float right = (h_2 - r_2);
-        return left*right*right*right;
-      }
-
-      /// @brief This is the kernel function to stimate the gradient of the density
-      /// This can be done following this paper
-      /// http://www.physics.umu.se/digitalAssets/60/60425_constraint-fluids-ieee.pdf
-      /// For the gradient kernel for spiky we used http://www8.cs.umu.se/kurser/TDBD24/VT06/lectures/sphsurvivalkit.pdf
-      float gradient_kernel_function_spiky(float r){
-        if (r > _SMOOTHING_H_ || r < 0.0f) return 0.0f;
-        float h_2 = _SMOOTHING_H_ * _SMOOTHING_H_;
-        float left = -45.0f / (3.141592f * h_2 * h_2 * h_2);
-        float right = _SMOOTHING_H_ - r;
-        return left*right*right;
-      }
-
-      /// @brief This function will obtain the scaling factor for the id_particle particle
-      /// To solve this we have to implement equation (11) from the paper
-      float obtain_scaling_factor(unsigned i){
-        float epsilon = 1.0f; //Relaxation parameter
-        //Obtain density constraint
-        float density_estimator = 0.0f;
-        float gradient_constraint_sum = 0.0f;
-        std::vector<uint8_t> * grid_cell = &grid_particles_id[particles_more[i].cell_id];
-        for each (uint8_t j in (*grid_cell)){
-          vec3 distance = particles_basic[i].pos - particles_basic[j].pos;
-          float distancef = distance.length();
-          density_estimator += kernel_function_poly6(distancef); //W(pi-pj,h)
-          float gradient = gradient_kernel_function_spiky(distancef);
-          gradient_constraint_sum += (gradient*gradient);
-        }
-        density_estimator *= particle_mass;
-        float density_constraint = density_estimator/_REST_DENSITY_ - 1.0f;
-
-        return (-1.0f * density_constraint) / (gradient_constraint_sum + epsilon);
-      }
-
       /// @brief This is the simulation loop for only fluid simulation 
       /// http://mmacklin.com/pbf_sig_preprint.pdf
       void simulation_fluids(){
@@ -129,45 +81,7 @@ namespace octet{
         before = now;
         float time_inc = elapsed_seconds.count();
 
-        //Here starts the Algorithm 1 from the Siggraph paper
-        //For all particles i do
-        for (unsigned i = 0; i != num_particles; ++i){
-          // Apply forces v[i] = v[i] + time_inc*fext(particle[i])
-          float f_ext = 0;
-          particles_more[i].vel += time_inc*f_ext;
-          // Predict position particle[i]' = particle[i] + time_inc*v[i]
-          particles_more[i].pos_predicted = particles_basic[i].pos + time_inc*particles_more[i].vel;
-        }
-
-        //Find neighbouring particles
-        find_neighbouring_particles();
-
-        // while iter < solverIterations do
-        for (unsigned iter = 0; iter != stabilizationIterations; ++iter){
-          std::array<float, _NUM_PARTICLES_> lambda;
-          // for all particles i do
-          for (unsigned i = 0; i != num_particles; ++i){
-            // Calculate lambda (aka Scaling Factor)
-            lambda[i] = obtain_scaling_factor(i);
-          }
-          std::array<float, _NUM_PARTICLES_> increment_position;
-          // for all particles i do
-          for (unsigned i = 0; i != num_particles; ++i){
-            // Calculate increment position
-            // perform collision detection and reponse
-          }
-          // for all particles i do
-          for (unsigned i = 0; i != num_particles; ++i){
-            // update estimated position with the increment
-          }
-        }
-
-        // for all particles i do
-        for (unsigned i = 0; i != num_particles; ++i){
-          // update velocit v[i] = 1/temp_inc * (particle[i]' - particle[i])
-          // apply velocity confinement and XSPH viscosity
-          // update positions particle[i] = particle[i]' or apply sleeping
-        }
+        /// NEW CODE GOES HERE <=
       }
 
     public:
