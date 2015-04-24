@@ -30,9 +30,9 @@ namespace octet{
   struct particle_more{
     unsigned cell_id;
     float lambda;
-    vec3 pos_predicted;
+    vec3 pos_prev;
     vec3 vel;
-    vec3 inc_pos;
+    int index;
   };
 
   namespace scene{
@@ -51,6 +51,7 @@ namespace octet{
       size_t stabilizationIterations;
       size_t solverIterations;
       float particle_radius;
+      vec2 gravity = (0.0f, -9.8f);
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::array<std::vector<uint8_t>, _NUM_PARTICLES_> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
 
@@ -68,6 +69,7 @@ namespace octet{
 
       void double_density_relaxation(){
       }
+
       void resolve_collisions(){
       }
 
