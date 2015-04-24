@@ -46,6 +46,11 @@ namespace octet{
       dynarray<particle_more> particles_more;
       float particle_mass;
       float particle_invmass;
+
+      float k; // stiffness
+      float k_near; // stiffness
+      float p_0; // rest_density
+
       float time_inc;    //just making this local as 5 functions use it(can pass through as parameter though) feel free to change
       size_t num_particles;
       size_t stabilizationIterations;
@@ -66,8 +71,36 @@ namespace octet{
       void update_neighbours(){
       }
 
-      void double_density_relaxation(){
+      void double_density_relaxation(float time_inc){
+        for (unsigned i = 0; i != num_particles; ++i){
+          float density = 0;
+          float density_near = 0;
+          std::vector<float> distances;
+          unsigned cell_id = particles_more[i].cell_id;
+          unsigned size_neighbours = grid_particles_id[cell_id].size();
+          distances.resize(size_neighbours);
+          for (unsigned j = 0; j != size_neighbours; ++j){
+            unsigned n = grid_particles_id[cell_id][j];
+            distances[j] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
+            float q = 1.0f - (distances[j] / particle_radius);
+            density += q*q;
+            density_near += q*q*q;
+          }
+          density = k * (density - p_0);
+          density_near = k_near * density_near;
+          vec3 delta = vec3(0);
+          for (unsigned j = 0; j != size_neighbours; ++j){
+            float q = 1.0f - (distances[j] / particle_radius);
+            unsigned n = grid_particles_id[cell_id][j];
+            vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[j];
+            vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
+            particles_basic[n].pos += D;
+            delta -= D;
+          }
+          particles_basic[i].pos += delta;
+        }
       }
+
       void resolve_collisions(){
       }
 
@@ -111,7 +144,7 @@ namespace octet{
 
         update_neighbours();
 
-        double_density_relaxation(); //uses time_inc
+        double_density_relaxation(time_inc); //uses time_inc
 
         resolve_collisions();
 
@@ -127,6 +160,10 @@ namespace octet{
         solverIterations = n_solver;
         particle_radius = _PARTICLE_DIAM * 0.5f;
         particle_mass = 1.0f;
+
+        k = 1.0f; // stiffness
+        k_near = 1.0f; // stiffness
+        p_0 = 1.0f; // rest_density
         int num_particles = 1;
 
         if (type == 0){          // Initializate the particles with fixed positions
