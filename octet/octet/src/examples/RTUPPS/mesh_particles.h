@@ -50,33 +50,64 @@ namespace octet{
       float k; // stiffness
       float k_near; // stiffness
       float p_0; // rest_density
-      vec3 gravity = (0.0f, -9.8f, 0.0f); //gravity 
+      float sigma; // viscosity's linear dependence
+      float beta; // viscosity's quadratic dependence
 
+      float time_inc;    //just making this local as 5 functions use it(can pass through as parameter though) feel free to change
       size_t num_particles;
       size_t stabilizationIterations;
       size_t solverIterations;
       float particle_radius;
-
+      vec2 gravity = (0.0f, -9.8f);
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::array<std::vector<uint8_t>, _NUM_PARTICLES_> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
 
-      void apply_external_forces(float time_inc){
-        for (unsigned i = 0; i != num_particles; ++i){
-          particles_more[i].vel += gravity;
-          //other external forces would be...
-          //particles_more[i].vel += forces_from_input(particles_more[i]); //function doesn't exist (yet?)
+      /// @brief This function will apply the external forces to the particle
+      /// Right now, the only external force is the gravity, although it could be interesting to add user interaction
+      void apply_external_forces(){
+        for each(particle_more info in particles_more){
+          info.vel += vec3(0.0f, -9.8f, 0.0f);
         }
       }
 
+      /// @brief This function applies the viscosity to the particles.
+      /// To work, it needs correct values for sigma and beta (linear and quadratic dependence of the particles)
       void apply_viscosity(float time_inc){
+        for (unsigned p = 0; p != num_particles; ++p){
+          unsigned cell_id = particles_more[p].cell_id;
+          unsigned size_neighbours = grid_particles_id[cell_id].size();
+          for (unsigned n = 0; n != size_neighbours; ++n){
+            vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
+            float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
+            if (vel_inward > 0.0f){
+              float length = distance.length();
+              vel_inward /= length;
+              float q = length / particle_radius;
+              vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance;
+              particles_more[p].vel -= impulse;
+            }
+          }
+        }
       }
 
+      /// @brief This function will change the position of the particles
+      /// This modification will be done using the velocity of the particle,
+      /// it will not be visible until we update the info of the shader
       void advance_particles(float time_inc){
+        for (unsigned p = 0; p != num_particles; ++p){
+          particles_more[p].pos_prev = particles_basic[p].pos;
+          particles_basic[p].pos += time_inc*particles_more[p].vel;
+          // grid.MoveParticle(p);
+        }
       }
 
       void update_neighbours(){
       }
 
+      /// @brief This function is in charge of the density relaxation
+      /// This function is done following the paper (using a formulation of the SPH paradigm).
+      /// We are avoiding to use a particle with itself, in case that it's considered its own 
+      ///   neighbour
       void double_density_relaxation(float time_inc){
         for (unsigned i = 0; i != num_particles; ++i){
           float density = 0;
@@ -86,22 +117,26 @@ namespace octet{
           unsigned size_neighbours = grid_particles_id[cell_id].size();
           distances.resize(size_neighbours);
           for (unsigned j = 0; j != size_neighbours; ++j){
-            unsigned n = grid_particles_id[cell_id][j];
-            distances[j] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
-            float q = 1.0f - (distances[j] / particle_radius);
-            density += q*q;
-            density_near += q*q*q;
+            if (j != i){ //to avoid being moved by itself!
+              unsigned n = grid_particles_id[cell_id][j];
+              distances[j] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
+              float q = 1.0f - (distances[j] / particle_radius);
+              density += q*q;
+              density_near += q*q*q;
+            }
           }
           density = k * (density - p_0);
           density_near = k_near * density_near;
           vec3 delta = vec3(0);
           for (unsigned j = 0; j != size_neighbours; ++j){
-            float q = 1.0f - (distances[j] / particle_radius);
-            unsigned n = grid_particles_id[cell_id][j];
-            vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[j];
-            vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
-            particles_basic[n].pos += D;
-            delta -= D;
+            if (i != j){ //to avoid being moved by itself!
+              float q = 1.0f - (distances[j] / particle_radius);
+              unsigned n = grid_particles_id[cell_id][j];
+              vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[j];
+              vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
+              particles_basic[n].pos += D;
+              delta -= D;
+            }
           }
           particles_basic[i].pos += delta;
         }
@@ -110,8 +145,11 @@ namespace octet{
       void resolve_collisions(){
       }
 
+      /// @brief This function updates the velocity of a particle by its previous and current position
       void update_velocity(float time_inc){
-
+        for (unsigned p = 0; p != num_particles; ++p){
+          particles_more[p].vel = (particles_basic[p].pos - particles_more[p].pos_prev) / time_inc;
+        }
       }
 
       /// @brief This function updates a vector of particle indices within the simulation loop,
@@ -140,22 +178,21 @@ namespace octet{
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
-        float time_inc = elapsed_seconds.count();
+        time_inc = elapsed_seconds.count();
 
-        /// NEW CODE GOES HERE <=
-        apply_external_forces(time_inc);
+        apply_external_forces(); //uses time_inc
 
-        apply_viscosity(time_inc);
+        apply_viscosity(time_inc); //uses time_inc
 
-        advance_particles(time_inc);
+        advance_particles(time_inc); //uses time_inc
 
         update_neighbours();
 
-        double_density_relaxation(time_inc);
+        double_density_relaxation(time_inc); //uses time_inc
 
         resolve_collisions();
 
-        update_velocity(time_inc);
+        update_velocity(time_inc); //uses time_inc
       }
 
     public:
