@@ -33,6 +33,7 @@ namespace octet{
     vec3 pos_prev;
     vec3 vel;
     int index;
+    std::vector<uint8_t> neighbours; // neighbouring particles
   };
 
   namespace scene{
@@ -95,7 +96,6 @@ namespace octet{
       /// This modification will be done using the velocity of the particle,
       /// it will not be visible until we update the info of the shader
       void advance_particles(float time_inc){
-        unsigned num_particles = particles_basic.size();
         for (unsigned p = 0; p != num_particles; ++p){
           particles_more[p].pos_prev = particles_basic[p].pos;
           particles_basic[p].pos += time_inc*particles_more[p].vel;
@@ -109,6 +109,31 @@ namespace octet{
       /// particle holds, the function find neighbouring particles calculates a list of
       /// of possible neighbours by sorting the particles into a grid
       void update_neighbours(){
+        for each (particle_more pm in particles_more){
+          // clear the list of neighbouring particles
+          pm.neighbours.clear();
+          for each (uint8_t particle_id in get_possible_neighbours(pm.cell_id)){
+            // calculate the displacement given possible nighbour is from the particle in question
+            float disp = (particles_basic[particle_id].pos - particles_basic[pm.index].pos).length();
+            if (disp < _PARTICLE_DIAM * 0.5f){
+              pm.neighbours.push_back(particle_id);
+            }
+          }
+        }
+      }
+
+      /// @brief This function returns a vector of particle ids that are possible neighbours to a 
+      /// particle in a given cell id.
+      std::vector<uint8_t> get_possible_neighbours(unsigned int cell_id){
+        std::vector<uint8_t> possible_neigbours;
+        for (int j = -1; j != 2; ++j){   // loop columns
+          for (int i = -1; i != 2; i++){ // loop rows
+            unsigned int id = cell_id + i + _GRID_SIZE * j;
+            //Todo: detect edge cases to check functionality of this function
+            //possible_neigbours.insert(possible_neigbours.end(), grid_particles_id[id].begin(), grid_particles_id[id].end());
+          }
+        }
+        return possible_neigbours;
       }
 
       /// @brief This function is in charge of the density relaxation
@@ -160,7 +185,7 @@ namespace octet{
       }
 
       /// @brief This function updates the grid (an array of vectors) with a vector for each cell
-      /// that contains the particle ids of the particles currently within that cell. 
+      /// that contains the particle ids of the particles currently within that cell
       void update_particle_grid_positions(){
         // for each particle in the particle list determine its cell index
         unsigned int particle_id = 0;
@@ -185,19 +210,19 @@ namespace octet{
         before = now;
         float time_inc = elapsed_seconds.count();
 
-        apply_external_forces(); 
+        apply_external_forces();
 
-        apply_viscosity(time_inc); 
+        apply_viscosity(time_inc);
 
         advance_particles(time_inc);
 
         update_neighbours();
 
-        double_density_relaxation(time_inc); 
+        double_density_relaxation(time_inc);
 
         resolve_collisions();
 
-        update_velocity(time_inc); 
+        update_velocity(time_inc);
       }
 
     public:
@@ -213,18 +238,21 @@ namespace octet{
         k = 1.0f; // stiffness
         k_near = 1.0f; // stiffness
         p_0 = 1.0f; // rest_density
-        int num_particles = 10; // square root of number of particles
+        int num_particles = 10;
+        int index = 0;
 
         if (type == 0){          // Initializate the particles with fixed positions
-          for (int j = 0; j < num_particles; ++j){
-            for (int i = 0; i < num_particles; ++i){
-                particle_basic new_particle;
-                new_particle.pos = vec3(i - 5, j - 5, -5);
-                new_particle.phase = 0;
-                particles_basic.push_back(new_particle);
-                particle_more more_particle;
-                more_particle.vel = vec3(0, 0, 0);
-                particles_more.push_back(more_particle);
+          for (int i = 0; i < num_particles; ++i){
+            for (int j = 0; j < num_particles; ++j){
+              particle_basic new_particle;
+              new_particle.pos = vec3(i - 5, j - 5, -5);
+              new_particle.phase = 0;
+              particles_basic.push_back(new_particle);
+              particle_more more_particle;
+              more_particle.vel = vec3(0, 0, 0);
+              more_particle.index = index++;
+              more_particle.neighbours.reserve(36); //maximum amount of particle neighbours: 9 cells with 4 particles in each
+              particles_more.push_back(more_particle);
             }
           }
         }
@@ -244,6 +272,9 @@ namespace octet{
           new_particle.pos = vec3(-4.5f, -4.5f, 0.0f); // should be 100
           particles_basic.push_back(new_particle);
         }
+        // add the particles to the grid
+        update_particle_grid_positions();
+
         // Add particles to the mesh
         num_particles = particles_basic.size();
         num_particles = particles_basic.size();
