@@ -52,21 +52,22 @@ namespace octet{
       float p_0; // rest_density
       float sigma; // viscosity's linear dependence
       float beta; // viscosity's quadratic dependence
+      vec3 gravity = (0.0f, -9.8f, 0.0f); //gravity
 
-      float time_inc;    //just making this local as 5 functions use it(can pass through as parameter though) feel free to change
       size_t num_particles;
       size_t stabilizationIterations;
       size_t solverIterations;
       float particle_radius;
-      vec2 gravity = (0.0f, -9.8f);
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::array<std::vector<uint8_t>, _NUM_PARTICLES_> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
 
       /// @brief This function will apply the external forces to the particle
       /// Right now, the only external force is the gravity, although it could be interesting to add user interaction
       void apply_external_forces(){
-        for each(particle_more info in particles_more){
-          info.vel += vec3(0.0f, -9.8f, 0.0f);
+        for each(particle_more p in particles_more){
+          p.vel += gravity;
+          //potentially for the future use mouse x,y inputs
+          //p.vec += forces_from_touch_input(p);
         }
       }
 
@@ -178,21 +179,21 @@ namespace octet{
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
-        time_inc = elapsed_seconds.count();
+        float time_inc = elapsed_seconds.count();
 
-        apply_external_forces(); //uses time_inc
+        apply_external_forces(); 
 
-        apply_viscosity(time_inc); //uses time_inc
+        apply_viscosity(time_inc); 
 
-        advance_particles(time_inc); //uses time_inc
+        advance_particles(time_inc);
 
         update_neighbours();
 
-        double_density_relaxation(time_inc); //uses time_inc
+        double_density_relaxation(time_inc); 
 
         resolve_collisions();
 
-        update_velocity(time_inc); //uses time_inc
+        update_velocity(time_inc); 
       }
 
     public:
