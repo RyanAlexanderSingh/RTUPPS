@@ -50,23 +50,28 @@ namespace octet{
       float k; // stiffness
       float k_near; // stiffness
       float p_0; // rest_density
+      vec3 gravity = (0.0f, -9.8f, 0.0f); //gravity 
 
-      float time_inc;    //just making this local as 5 functions use it(can pass through as parameter though) feel free to change
       size_t num_particles;
       size_t stabilizationIterations;
       size_t solverIterations;
       float particle_radius;
-      vec2 gravity = (0.0f, -9.8f);
+
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::array<std::vector<uint8_t>, _NUM_PARTICLES_> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
 
-      void apply_external_forces(){
+      void apply_external_forces(float time_inc){
+        for (unsigned i = 0; i != num_particles; ++i){
+          particles_more[i].vel += gravity;
+          //other external forces would be...
+          //particles_more[i].vel += forces_from_input(particles_more[i]); //function doesn't exist (yet?)
+        }
       }
 
-      void apply_viscosity(){
+      void apply_viscosity(float time_inc){
       }
 
-      void advance_particles(){
+      void advance_particles(float time_inc){
       }
 
       void update_neighbours(){
@@ -105,7 +110,8 @@ namespace octet{
       void resolve_collisions(){
       }
 
-      void update_velocity(){
+      void update_velocity(float time_inc){
+
       }
 
       /// @brief This function updates a vector of particle indices within the simulation loop,
@@ -134,22 +140,22 @@ namespace octet{
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
-        time_inc = elapsed_seconds.count();
+        float time_inc = elapsed_seconds.count();
 
         /// NEW CODE GOES HERE <=
-        apply_external_forces(); //uses time_inc
+        apply_external_forces(time_inc);
 
-        apply_viscosity(); //uses time_inc
+        apply_viscosity(time_inc);
 
-        advance_particles(); //uses time_inc
+        advance_particles(time_inc);
 
         update_neighbours();
 
-        double_density_relaxation(time_inc); //uses time_inc
+        double_density_relaxation(time_inc);
 
         resolve_collisions();
 
-        update_velocity(); //uses time_inc
+        update_velocity(time_inc);
       }
 
     public:
