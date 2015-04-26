@@ -95,13 +95,19 @@ namespace octet{
       /// This modification will be done using the velocity of the particle,
       /// it will not be visible until we update the info of the shader
       void advance_particles(float time_inc){
+        unsigned num_particles = particles_basic.size();
         for (unsigned p = 0; p != num_particles; ++p){
           particles_more[p].pos_prev = particles_basic[p].pos;
           particles_basic[p].pos += time_inc*particles_more[p].vel;
           // grid.MoveParticle(p);
+          // update the grid, sort the paricles and their ids into the grid
+          update_particle_grid_positions();
         }
       }
 
+      /// @brief This function updates the list of neighbouring particles that each
+      /// particle holds, the function find neighbouring particles calculates a list of
+      /// of possible neighbours by sorting the particles into a grid
       void update_neighbours(){
       }
 
@@ -153,10 +159,9 @@ namespace octet{
         }
       }
 
-      /// @brief This function updates a vector of particle indices within the simulation loop,
-      // http://docs.nvidia.com/cuda/samples/5_Simulations/particles/doc/particles.pdf
-      // Attempting the "Building the Grid using Atomic operations"
-      void find_neighbouring_particles(){
+      /// @brief This function updates the grid (an array of vectors) with a vector for each cell
+      /// that contains the particle ids of the particles currently within that cell. 
+      void update_particle_grid_positions(){
         // for each particle in the particle list determine its cell index
         unsigned int particle_id = 0;
         for each (particle_basic pb in particles_basic){
@@ -164,7 +169,6 @@ namespace octet{
           //obtain index of the cell for that particle
           cell_index += std::floor((pb.pos.x() + _GRID_SIZE) / _PARTICLE_DIAM);
           cell_index += _GRID_SIZE * 2 * std::floor((pb.pos.y() + _GRID_SIZE) / _PARTICLE_DIAM);
-          cell_index += std::pow(_GRID_SIZE * 2, 2) * std::floor((pb.pos.z() + _GRID_SIZE) / _PARTICLE_DIAM);
           //put that particle into the cell
           grid_particles_id[cell_index].push_back(particle_id); //telling the cell which particles does it have
           particles_more[particle_id].cell_id = cell_index; //telling the particle which one is his cell id
@@ -200,7 +204,7 @@ namespace octet{
       mesh_particles() : num_particles(0), stabilizationIterations(0), solverIterations(0){}
 
       /// @brief This will initilize the mesh!
-      void init(int type = 1, int n_stabilization = 10, int n_solver = 10){
+      void init(int type = 0, int n_stabilization = 10, int n_solver = 10){
         stabilizationIterations = n_stabilization;
         solverIterations = n_solver;
         particle_radius = _PARTICLE_DIAM * 0.5f;
@@ -209,37 +213,35 @@ namespace octet{
         k = 1.0f; // stiffness
         k_near = 1.0f; // stiffness
         p_0 = 1.0f; // rest_density
-        int num_particles = 1;
+        int num_particles = 10; // square root of number of particles
 
         if (type == 0){          // Initializate the particles with fixed positions
-          for (int i = 0; i < num_particles; ++i){
-            for (int j = 0; j < num_particles; ++j){
-              for (int k = 0; k < num_particles; ++k){
+          for (int j = 0; j < num_particles; ++j){
+            for (int i = 0; i < num_particles; ++i){
                 particle_basic new_particle;
-                new_particle.pos = vec3(i - 5, k - 5, j - 5);
+                new_particle.pos = vec3(i - 5, j - 5, -5);
                 new_particle.phase = 0;
                 particles_basic.push_back(new_particle);
                 particle_more more_particle;
                 more_particle.vel = vec3(0, 0, 0);
                 particles_more.push_back(more_particle);
-              }
             }
           }
         }
         else { // used for testing grid particle location and postions
           particle_basic new_particle;
-          new_particle.pos = vec3(0.5f, 0.5f, 0.5f); // should be 555 
+          new_particle.pos = vec3(0.5f, 0.5f, -5.0f); // should be 555 
           new_particle.phase = 0;
           particles_basic.push_back(new_particle);
-          new_particle.pos = vec3(-4.5f, -4.5f, -4.5f); // should be 0
+          new_particle.pos = vec3(-4.5f, -4.5f, 0.0f); // should be 0
           particles_basic.push_back(new_particle);
-          new_particle.pos = vec3(4.5f, 4.5f, 4.5f);    // should be 999 
+          new_particle.pos = vec3(4.5f, 4.5f, 0.0f);    // should be 999 
           particles_basic.push_back(new_particle);
-          new_particle.pos = vec3(-3.5f, -4.5f, -4.5f); // should be 1
+          new_particle.pos = vec3(-3.5f, -4.5f, 0.0f); // should be 1
           particles_basic.push_back(new_particle);
-          new_particle.pos = vec3(-4.5f, -3.5f, -4.5f); // should be 10
+          new_particle.pos = vec3(-4.5f, -3.5f, 0.0f); // should be 10
           particles_basic.push_back(new_particle);
-          new_particle.pos = vec3(-4.5f, -4.5f, -3.5f); // should be 100
+          new_particle.pos = vec3(-4.5f, -4.5f, 0.0f); // should be 100
           particles_basic.push_back(new_particle);
         }
         // Add particles to the mesh
