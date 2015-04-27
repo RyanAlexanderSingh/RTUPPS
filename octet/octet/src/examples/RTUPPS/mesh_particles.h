@@ -13,7 +13,7 @@
 
 namespace octet{
   // grid size determines the half extents of the simulation space (ie 50 -> cube with 100 cells in each dimension)
-  enum { _NUM_PARTICLES_ = 100, _PARTICLE_DIAM = 1, _GRID_SIZE = 20, _SMOOTHING_H_ = 1, _REST_DENSITY_ = 1000 };
+  enum { _NUM_PARTICLES_ = 100, _PARTICLE_DIAM = 10, _GRID_SIZE = 20, _SMOOTHING_H_ = 1, _REST_DENSITY_ = 1000 };
 
   // this function converts three floats into a RGBA 8 bit color
   static uint32_t make_color(float r, float g, float b) {
@@ -63,8 +63,7 @@ namespace octet{
       /// Right now, the only external force is the gravity, although it could be interesting to add user interaction
       void apply_external_forces(float time_inc){
         for each(particle_more p in particles_more){
-          float inc_vel = -9.8f * 10000;
-          p.vel.y() += inc_vel;
+          float inc_vel = -9.8f * time_inc;
           //potentially for the future use mouse x,y inputs
           //p.vec += forces_from_touch_input(p);
         }
@@ -95,8 +94,16 @@ namespace octet{
       /// it will not be visible until we update the info of the shader
       void advance_particles(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
+          // Apply gravity
+          float inc_vel = -9.8f * time_inc;
+          if (p == 0) printf("\nStart Velocity: %f\n", particles_more[p].vel.y());
+          particles_more[p].vel.y() += inc_vel;
+          if (p == 0) printf("Mid Velocity: %f", particles_more[p].vel.y());
+
           particles_more[p].pos_prev = particles_basic[p].pos;
+          if (p== 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
           vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
+          if (p == 0) printf("\nIncrementing by: %f", inc_pos.y());
           particles_basic[p].pos += inc_pos;
         }
       }
@@ -180,7 +187,9 @@ namespace octet{
       void update_velocity(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
           vec3 new_velocity = (particles_basic[p].pos - particles_more[p].pos_prev) / time_inc;
-          particles_more[p].vel = new_velocity;
+          if (p == 0) printf("\nNew Velocity: %f\n", particles_more[p].vel.y());
+          particles_more[p].vel = vec3(new_velocity);
+          if (p == 0) printf("New Velocity: %f\n", particles_more[p].vel.y());
         }
       }
 
@@ -211,25 +220,25 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
         float time_inc = elapsed_seconds.count();
-        printf("time_inc.. ");
+        printf(" \n \ntime_inc.. %f", time_inc);
         apply_external_forces(time_inc);
 
-        printf("Applying viscosity.. ");
+    //    printf("Applying viscosity.. ");
    //     apply_viscosity(time_inc);
 
-        printf("Advancing particles.. ");
+    //    printf("Advancing particles.. ");
         advance_particles(time_inc);
 
-        printf("Updating neighbours.. ");
+    //    printf("Updating neighbours.. ");
    //     update_neighbours();
 
-        printf("Relaxing double density.. ");
+     //   printf("Relaxing double density.. ");
      //   double_density_relaxation(time_inc);
 
-        printf("Colliding resolutions.. ");
+    //    printf("Colliding resolutions.. ");
      //   resolve_collisions(time_inc);
 
-        printf("Updating velocity.. ");
+    //    printf("Updating velocity.. ");
         update_velocity(time_inc);
       }
 
@@ -257,7 +266,7 @@ namespace octet{
               new_particle.phase = 0;
               particles_basic.push_back(new_particle);
               particle_more more_particle;
-              more_particle.vel = vec3(0.0f, -1.f, 0.0f);
+              more_particle.vel = vec3(0.0f, 1.f, 0.0f);
               more_particle.index = index++;
               more_particle.cell_id = -1;
               more_particle.neighbours.reserve(36); //maximum amount of particle neighbours: 9 cells with 4 particles in each
