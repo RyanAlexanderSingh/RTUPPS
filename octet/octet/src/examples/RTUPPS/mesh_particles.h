@@ -57,7 +57,7 @@ namespace octet{
       int grid_size;
       float particle_radius;
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
-      std::map<int,std::vector<uint8_t>> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
+      std::map<int, std::vector<uint8_t>> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
 
       /// @brief This function will apply the external forces to the particle
       /// Right now, the only external force is the gravity, although it could be interesting to add user interaction
@@ -110,7 +110,8 @@ namespace octet{
         for each (particle_more pm in particles_more){
           // clear the list of neighbouring particles
           pm.neighbours.clear();
-          for each (uint8_t particle_id in get_possible_neighbours(pm.cell_id)){
+          std::vector<uint8_t> possible_neighbours = get_possible_neighbours(pm.cell_id, pm.index);
+          for each (uint8_t particle_id in possible_neighbours){
             // calculate the displacement given possible nighbour is from the particle in question
             float disp = (particles_basic[particle_id].pos - particles_basic[pm.index].pos).length();
             if (disp < _PARTICLE_DIAM * 0.5f){
@@ -122,13 +123,22 @@ namespace octet{
 
       /// @brief This function returns a vector of particle ids that are possible neighbours to a 
       /// particle in a given cell id.
-      std::vector<uint8_t> get_possible_neighbours(unsigned int cell_id){
+      std::vector<uint8_t> get_possible_neighbours(unsigned int cell_id, uint8_t particle_id){
         std::vector<uint8_t> possible_neigbours;
-        for (int j = -1; j != 2; ++j){   // loop columns
-          for (int i = -1; i != 2; i++){ // loop rows
+        // detect edge cases and resize the for loops accordingly
+        int left_index = (cell_id % _GRID_SIZE == 0) ? 0 : -1;            // is the cell in the left most column?
+        int right_index = (cell_id % (_GRID_SIZE - 1) == 0) ? 1 : 2;       // is the cell in the right most column?
+        int up_index = (cell_id >= _GRID_SIZE * (_GRID_SIZE - 1)) ? 1 : 2; // is the cell in the top row?
+        int down_index = (cell_id <= _GRID_SIZE) ? 0 : -1;                // is the cell in the first row?
+
+        for (int j = down_index; j != up_index; ++j){      // loop columns
+          for (int i = left_index; i != right_index; i++){ // loop rows
             unsigned int id = cell_id + i + _GRID_SIZE * j;
-            //Todo: detect edge cases to check functionality of this function
-            //possible_neigbours.insert(possible_neigbours.end(), grid_particles_id[id].begin(), grid_particles_id[id].end());
+            // detect the case where a particle is added to its own list of neighbours
+            if (i == 0 && j == 0){ // run check only for particles own cell 
+
+            }
+            possible_neigbours.insert(possible_neigbours.end(), grid_particles_id[id].begin(), grid_particles_id[id].end());
           }
         }
         return possible_neigbours;
@@ -211,23 +221,26 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
         float time_inc = elapsed_seconds.count();
+        if (time_inc > 1.0f){
+          assert(0);
+        }
         printf("time_inc.. ");
         apply_external_forces(time_inc);
 
         printf("Applying viscosity.. ");
-   //     apply_viscosity(time_inc);
+        apply_viscosity(time_inc);
 
         printf("Advancing particles.. ");
         advance_particles(time_inc);
 
         printf("Updating neighbours.. ");
-   //     update_neighbours();
+        update_neighbours();
 
         printf("Relaxing double density.. ");
-     //   double_density_relaxation(time_inc);
+        double_density_relaxation(time_inc);
 
         printf("Colliding resolutions.. ");
-     //   resolve_collisions(time_inc);
+        resolve_collisions(time_inc);
 
         printf("Updating velocity.. ");
         update_velocity(time_inc);
