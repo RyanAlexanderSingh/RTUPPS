@@ -100,8 +100,6 @@ namespace octet{
           particles_more[p].pos_prev = particles_basic[p].pos;
           particles_basic[p].pos += time_inc*particles_more[p].vel;
           // grid.MoveParticle(p);
-          // update the grid, sort the paricles and their ids into the grid
-          update_particle_grid_positions();
         }
       }
 
@@ -109,6 +107,8 @@ namespace octet{
       /// particle holds, the function find neighbouring particles calculates a list of
       /// of possible neighbours by sorting the particles into a grid
       void update_neighbours(){
+        // update the grid, sort the paricles and their ids into the grid
+        update_particle_grid_positions();
         for each (particle_more pm in particles_more){
           // clear the list of neighbouring particles
           pm.neighbours.clear();
@@ -174,7 +174,8 @@ namespace octet{
         }
       }
 
-      void resolve_collisions(){
+      /// @brief This function is in charge of resolving the collision between the particles and the world (bounding box!)
+      void resolve_collisions(float time_inc){
       }
 
       /// @brief This function updates the velocity of a particle by its previous and current position
@@ -220,7 +221,7 @@ namespace octet{
 
         double_density_relaxation(time_inc);
 
-        resolve_collisions();
+        resolve_collisions(time_inc);
 
         update_velocity(time_inc);
       }
