@@ -52,7 +52,6 @@ namespace octet{
       float p_0; // rest_density
       float sigma; // viscosity's linear dependence
       float beta; // viscosity's quadratic dependence
-      vec3 gravity = (0.0f, -9.8f, 0.0f); //gravity
 
       size_t num_particles;
       int grid_size;
@@ -64,7 +63,8 @@ namespace octet{
       /// Right now, the only external force is the gravity, although it could be interesting to add user interaction
       void apply_external_forces(float time_inc){
         for each(particle_more p in particles_more){
-          p.vel += gravity;
+          float inc_vel = -9.8f * 10000;
+          p.vel.y() += inc_vel;
           //potentially for the future use mouse x,y inputs
           //p.vec += forces_from_touch_input(p);
         }
@@ -210,24 +210,24 @@ namespace octet{
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
-        float time_inc = elapsed_seconds.count() * 0.00001;
+        float time_inc = elapsed_seconds.count();
         printf("time_inc.. ");
         apply_external_forces(time_inc);
 
         printf("Applying viscosity.. ");
-        apply_viscosity(time_inc);
+   //     apply_viscosity(time_inc);
 
         printf("Advancing particles.. ");
         advance_particles(time_inc);
 
         printf("Updating neighbours.. ");
-        update_neighbours();
+   //     update_neighbours();
 
         printf("Relaxing double density.. ");
-        double_density_relaxation(time_inc);
+     //   double_density_relaxation(time_inc);
 
         printf("Colliding resolutions.. ");
-        resolve_collisions(time_inc);
+     //   resolve_collisions(time_inc);
 
         printf("Updating velocity.. ");
         update_velocity(time_inc);
@@ -306,6 +306,8 @@ namespace octet{
           *idx = i;
           ++idx;
         }
+
+        before = std::chrono::system_clock::now();
       }
 
       /// Serialise
