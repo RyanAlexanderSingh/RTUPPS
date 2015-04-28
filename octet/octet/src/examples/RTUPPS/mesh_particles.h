@@ -271,6 +271,16 @@ namespace octet{
         update_velocity(time_inc);
       }
 
+      /// @brief This funcion intialize the distance field, so the particles can collide with the world
+      /// This function has to be called in the init function. 
+      void initialize_distance_field(){
+        // Reserve space in the distance field vector
+        
+        // implement code from pseudocode
+        // CODE GOES HERE!
+        //
+      }
+
     public:
       mesh_particles() : num_particles(0){}
 
@@ -289,6 +299,8 @@ namespace octet{
         grid_size = _GRID_SIZE;
         int sqrt_num_particles = sqrt(num_particles);
         int index = 0;
+
+        initialize_distance_field();
 
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < sqrt_num_particles; ++i){
