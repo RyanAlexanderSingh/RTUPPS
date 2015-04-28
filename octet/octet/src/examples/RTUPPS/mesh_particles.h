@@ -230,36 +230,15 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
         float time_inc = elapsed_seconds.count();
-<<<<<<< HEAD
         printf(" \n \ntime_inc.. %f", time_inc);
-        apply_external_forces(time_inc);
-
-    //    printf("Applying viscosity.. ");
-   //     apply_viscosity(time_inc);
-=======
-        if (time_inc > 1.0f){
-          assert(0);
-        }
-        printf("time_inc.. ");
         apply_external_forces(time_inc);
 
         printf("Applying viscosity.. ");
         apply_viscosity(time_inc);
->>>>>>> 8a7e3a77375c185650adbe24f168d66f5536263c
 
-    //    printf("Advancing particles.. ");
+        printf("Advancing particles.. ");
         advance_particles(time_inc);
 
-<<<<<<< HEAD
-    //    printf("Updating neighbours.. ");
-   //     update_neighbours();
-
-     //   printf("Relaxing double density.. ");
-     //   double_density_relaxation(time_inc);
-
-    //    printf("Colliding resolutions.. ");
-     //   resolve_collisions(time_inc);
-=======
         printf("Updating neighbours.. ");
         update_neighbours();
 
@@ -268,9 +247,8 @@ namespace octet{
 
         printf("Colliding resolutions.. ");
         resolve_collisions(time_inc);
->>>>>>> 8a7e3a77375c185650adbe24f168d66f5536263c
 
-    //    printf("Updating velocity.. ");
+        printf("Updating velocity.. ");
         update_velocity(time_inc);
       }
 
