@@ -35,6 +35,12 @@ namespace octet{
     std::vector<uint8_t> neighbours; // neighbouring particles
   };
 
+  struct DistanceField_Cell{
+    float distance;
+    vec3 normal;
+    vec3 tangent;
+  };
+
   namespace scene{
 
     /// @brief This is the class mesh_particles. This class contains a mesh with a set of particles with RTUPPS
@@ -52,18 +58,26 @@ namespace octet{
       float p_0; // rest_density
       float sigma; // viscosity's linear dependence
       float beta; // viscosity's quadratic dependence
+      float collision_radius;
+      float friction;
+      float collision_softness;
 
       size_t num_particles;
       int grid_size;
       float particle_radius;
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
       std::map<int, std::vector<uint8_t>> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
+      std::vector<DistanceField_Cell> distance_field;
 
       /// @brief This function will apply the external forces to the particle
       /// Right now, the only external force is the gravity, although it could be interesting to add user interaction
       void apply_external_forces(float time_inc){
-        for each(particle_more p in particles_more){
+        for (unsigned p = 0; p != num_particles; ++p){
+          // Apply gravity
           float inc_vel = -9.8f * time_inc;
+          if (p == 0) printf("\nStart Velocity: %f\n", particles_more[p].vel.y());
+          particles_more[p].vel.y() += inc_vel;
+          if (p == 0) printf("Mid Velocity: %f", particles_more[p].vel.y());
           //potentially for the future use mouse x,y inputs
           //p.vec += forces_from_touch_input(p);
         }
@@ -74,8 +88,9 @@ namespace octet{
       void apply_viscosity(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
           unsigned cell_id = particles_more[p].cell_id;
-          unsigned size_neighbours = grid_particles_id[cell_id].size();
-          for (unsigned n = 0; n != size_neighbours; ++n){
+          unsigned size_neighbours = particles_more[p].neighbours.size();
+          for (unsigned i = 0; i != size_neighbours; ++i){
+            unsigned n = particles_more[p].neighbours[i];
             vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
             float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
             if (vel_inward > 0.0f){
@@ -94,16 +109,8 @@ namespace octet{
       /// it will not be visible until we update the info of the shader
       void advance_particles(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
-          // Apply gravity
-          float inc_vel = -9.8f * time_inc;
-          if (p == 0) printf("\nStart Velocity: %f\n", particles_more[p].vel.y());
-          particles_more[p].vel.y() += inc_vel;
-          if (p == 0) printf("Mid Velocity: %f", particles_more[p].vel.y());
-
           particles_more[p].pos_prev = particles_basic[p].pos;
-          if (p== 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
           vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
-          if (p == 0) printf("\nIncrementing by: %f", inc_pos.y());
           particles_basic[p].pos += inc_pos;
         }
       }
@@ -164,10 +171,10 @@ namespace octet{
           unsigned size_neighbours = particles_more[i].neighbours.size();
           distances.resize(size_neighbours);
           for (unsigned j = 0; j != size_neighbours; ++j){
-            if (j != i){ //to avoid being moved by itself!
-              unsigned n = particles_more[i].neighbours[j];
-              distances[j] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
-              float q = 1.0f - (distances[j] / particle_radius);
+            unsigned n = particles_more[i].neighbours[j];
+            if (n != i){ //to avoid being moved by itself!
+              distances[n] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
+              float q = 1.0f - (distances[n] / particle_radius);
               density += q*q;
               density_near += q*q*q;
             }
@@ -176,10 +183,10 @@ namespace octet{
           density_near = k_near * density_near;
           vec3 delta = vec3(0);
           for (unsigned j = 0; j != size_neighbours; ++j){
-            if (i != j){ //to avoid being moved by itself!
-              float q = 1.0f - (distances[j] / particle_radius);
-              unsigned n = particles_more[i].neighbours[j];
-              vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[j];
+            unsigned n = particles_more[i].neighbours[j];
+            if (i != n){ //to avoid being moved by itself!
+              float q = 1.0f - (distances[n] / particle_radius);
+              vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[n];
               vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
               particles_basic[n].pos += D;
               delta -= D;
@@ -191,15 +198,27 @@ namespace octet{
 
       /// @brief This function is in charge of resolving the collision between the particles and the world (bounding box!)
       void resolve_collisions(float time_inc){
+        for (unsigned p = 0; p != num_particles; ++p){
+          int index = 2; //distanceField.GetIndex(p.pos)
+          if (index != -1){
+            float distance = 2.0f; //distanceField.GetDistance(index)
+            if (distance > -collision_radius){ //distance > -collisionRadius
+              vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
+              vec3 normal = vec3(0.0f, 1.0f, 0.0f); //distanceField.getNormal(index);
+              vec3 tangent = vec3(1.0f, 0.0f, 0.0f); //PerpendicularCCW(normal);
+              tangent = time_inc*friction*(direction.dot(tangent))*tangent;
+              particles_basic[p].pos -= tangent;
+              particles_basic[p].pos -= collision_softness*(distance+particle_radius)*normal;
+            }
+          }
+        }
       }
 
       /// @brief This function updates the velocity of a particle by its previous and current position
       void update_velocity(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
           vec3 new_velocity = (particles_basic[p].pos - particles_more[p].pos_prev) / time_inc;
-          if (p == 0) printf("\nNew Velocity: %f\n", particles_more[p].vel.y());
           particles_more[p].vel = vec3(new_velocity);
-          if (p == 0) printf("New Velocity: %f\n", particles_more[p].vel.y());
         }
       }
 
@@ -233,20 +252,20 @@ namespace octet{
         printf(" \n \ntime_inc.. %f", time_inc);
         apply_external_forces(time_inc);
 
-        printf("Applying viscosity.. ");
-        apply_viscosity(time_inc);
+    //    printf("Applying viscosity.. ");
+    //    apply_viscosity(time_inc);
 
         printf("Advancing particles.. ");
         advance_particles(time_inc);
 
-        printf("Updating neighbours.. ");
-        update_neighbours();
+   //     printf("Updating neighbours.. ");
+    //    update_neighbours();
 
-        printf("Relaxing double density.. ");
-        double_density_relaxation(time_inc);
+    //    printf("Relaxing double density.. ");
+    //    double_density_relaxation(time_inc);
 
-        printf("Colliding resolutions.. ");
-        resolve_collisions(time_inc);
+    //    printf("Colliding resolutions.. ");
+    //    resolve_collisions(time_inc);
 
         printf("Updating velocity.. ");
         update_velocity(time_inc);
@@ -260,17 +279,20 @@ namespace octet{
         particle_radius = _PARTICLE_DIAM * 0.5f;
         particle_mass = 1.0f;
 
+        collision_radius = particle_radius + 0.1f;
+        friction = 0.5f;
+        collision_softness = 0.6f;
         k = 1.0f; // stiffness
         k_near = 1.0f; // stiffness
         p_0 = 1.0f; // rest_density
         num_particles = _NUM_PARTICLES_;
         grid_size = _GRID_SIZE;
-        int squared_num_particles = sqrt(num_particles);
+        int sqrt_num_particles = sqrt(num_particles);
         int index = 0;
 
         if (type == 0){          // Initializate the particles with fixed positions
-          for (int i = 0; i < squared_num_particles; ++i){
-            for (int j = 0; j < squared_num_particles; ++j){
+          for (int i = 0; i < sqrt_num_particles; ++i){
+            for (int j = 0; j < sqrt_num_particles; ++j){
               particle_basic new_particle;
               new_particle.pos = vec3(i - 5, j - 5, -5);
               new_particle.phase = 0;
