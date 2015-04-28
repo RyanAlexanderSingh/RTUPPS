@@ -201,14 +201,14 @@ namespace octet{
         for (unsigned p = 0; p != num_particles; ++p){
           int index = 2; //distanceField.GetIndex(p.pos)
           if (index != -1){
-            float distance = 2.0f; //distanceField.GetDistance(index)
-            if (distance > -collision_radius){ //distance > -collisionRadius
+            float distance = particles_basic[p].pos.y() + 10.0f; //distanceField.GetDistance(index)
+            if (distance < 0.0f){ //distance > -collisionRadius
               vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
               vec3 normal = vec3(0.0f, 1.0f, 0.0f); //distanceField.getNormal(index);
               vec3 tangent = vec3(1.0f, 0.0f, 0.0f); //PerpendicularCCW(normal);
               tangent = time_inc*friction*(direction.dot(tangent))*tangent;
               particles_basic[p].pos -= tangent;
-              particles_basic[p].pos -= collision_softness*(distance+particle_radius)*normal;
+              particles_basic[p].pos -= collision_softness*(distance)*normal;
             }
           }
         }
@@ -248,7 +248,7 @@ namespace octet{
         std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
-        float time_inc = elapsed_seconds.count();
+        float time_inc = elapsed_seconds.count()*0.5f;
         printf(" \n \ntime_inc.. %f", time_inc);
         apply_external_forces(time_inc);
 
@@ -264,8 +264,8 @@ namespace octet{
     //    printf("Relaxing double density.. ");
     //    double_density_relaxation(time_inc);
 
-    //    printf("Colliding resolutions.. ");
-    //    resolve_collisions(time_inc);
+        printf("Colliding resolutions.. ");
+        resolve_collisions(time_inc);
 
         printf("Updating velocity.. ");
         update_velocity(time_inc);
