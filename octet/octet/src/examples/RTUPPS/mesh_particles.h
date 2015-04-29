@@ -57,7 +57,8 @@ namespace octet{
       int grid_size;
       float particle_radius;
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
-      std::map<int, std::vector<uint8_t>> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
+      std::map<int, std::vector<uint8_t>> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient! (like your mumma)
+      std::vector<std::pair<vec3, vec3>> distance_field; // This vector contains the representation of the world for the collision 
 
       /// @brief This function will apply the external forces to the particle
       /// Right now, the only external force is the gravity, although it could be interesting to add user interaction
@@ -101,7 +102,7 @@ namespace octet{
           if (p == 0) printf("Mid Velocity: %f", particles_more[p].vel.y());
 
           particles_more[p].pos_prev = particles_basic[p].pos;
-          if (p== 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
+          if (p == 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
           vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
           if (p == 0) printf("\nIncrementing by: %f", inc_pos.y());
           particles_basic[p].pos += inc_pos;
@@ -190,7 +191,32 @@ namespace octet{
       }
 
       /// @brief This function is in charge of resolving the collision between the particles and the world (bounding box!)
+      /// This function requires the construction and updating of the distance field
       void resolve_collisions(float time_inc){
+         // for each particle
+            // get the particle index from the distance field (whatever that means)
+            // if the index is not == -1 (for whatever reason)
+                // get the distance from the distance field
+                // if the distance is large then -collisionRadius
+                  // calculate temp velocity (is this stored in particle_more?)
+                  // calculate the normal and tangent to the plane || point of contact
+                  // caluclate tangential fraction fo the resultant velocity = timeStep * friction * (vel dot tangent) * tangent
+                  // update the particle position and apply collision smoothing
+      }
+
+      /// @brief This function will update the distance field required for resolving collisions
+      /// the distance field holds a pair of vec3s for each particle in the system. High memory consumption
+      /// the first of these vec3s holds the distance to the closest wall and the second the normal.
+      void update_distance_field(){
+        // Upwards Pass
+          // construct s and v; where s is the set of full (solid) cells adjacent to an empty cell, and v is empty.
+          // while s is not empty
+            // set all cells in s to v
+            // set s to all the neighbours of v that has not been given a value
+            // v++
+        // Downwards pass
+          // set s to be the set of empty cells adjacent to solid cells and v to zero / empty
+          // repeat as above but reducing the assigned value
       }
 
       /// @brief This function updates the velocity of a particle by its previous and current position
@@ -230,13 +256,11 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
         float time_inc = elapsed_seconds.count();
-<<<<<<< HEAD
         printf(" \n \ntime_inc.. %f", time_inc);
         apply_external_forces(time_inc);
 
-    //    printf("Applying viscosity.. ");
-   //     apply_viscosity(time_inc);
-=======
+        //    printf("Applying viscosity.. ");
+        //     apply_viscosity(time_inc);
         if (time_inc > 1.0f){
           assert(0);
         }
@@ -245,21 +269,18 @@ namespace octet{
 
         printf("Applying viscosity.. ");
         apply_viscosity(time_inc);
->>>>>>> 8a7e3a77375c185650adbe24f168d66f5536263c
 
-    //    printf("Advancing particles.. ");
+        //    printf("Advancing particles.. ");
         advance_particles(time_inc);
 
-<<<<<<< HEAD
-    //    printf("Updating neighbours.. ");
-   //     update_neighbours();
+        //    printf("Updating neighbours.. ");
+        //     update_neighbours();
 
-     //   printf("Relaxing double density.. ");
-     //   double_density_relaxation(time_inc);
+        //   printf("Relaxing double density.. ");
+        //   double_density_relaxation(time_inc);
 
-    //    printf("Colliding resolutions.. ");
-     //   resolve_collisions(time_inc);
-=======
+        //    printf("Colliding resolutions.. ");
+        //   resolve_collisions(time_inc);
         printf("Updating neighbours.. ");
         update_neighbours();
 
@@ -268,9 +289,8 @@ namespace octet{
 
         printf("Colliding resolutions.. ");
         resolve_collisions(time_inc);
->>>>>>> 8a7e3a77375c185650adbe24f168d66f5536263c
 
-    //    printf("Updating velocity.. ");
+        //    printf("Updating velocity.. ");
         update_velocity(time_inc);
       }
 
