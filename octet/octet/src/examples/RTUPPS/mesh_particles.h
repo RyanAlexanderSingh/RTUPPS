@@ -32,7 +32,7 @@ namespace octet{
     vec3 pos_prev;
     vec3 vel;
     int index;
-    std::vector<uint8_t> neighbours; // neighbouring particles
+    std::vector<int> neighbours; // neighbouring particles
   };
 
   struct DistanceField_Cell{
@@ -40,6 +40,20 @@ namespace octet{
     vec3 normal;
     vec3 tangent;
   };
+
+  /// @brief This helper fucntion returns the maximum value in vector 
+  /// This is menat to be work around specifically for an indexing issue in
+  /// the double density function; ie this should ideally be designed out.
+  unsigned get_max_value(std::vector<int> vec){
+    unsigned val = 0;
+    for (size_t i = 0; i != vec.size(); i++)
+    {
+      if (vec[i] > val){
+        val = vec[i];
+      }
+    }
+    return val;
+  }
 
   namespace scene{
 
@@ -66,7 +80,7 @@ namespace octet{
       int grid_size;
       float particle_radius;
       std::chrono::time_point<std::chrono::system_clock> before; //used to obtain the time increment
-      std::map<int, std::vector<uint8_t>> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
+      std::map<int, std::vector<int>> grid_particles_id; //This is an array of vectors (one per cell grid) -- extremelly space inefficient!
       std::vector<DistanceField_Cell> distance_field;
 
       /// @brief This function will apply the external forces to the particle
@@ -122,11 +136,11 @@ namespace octet{
       void update_neighbours(){
         // update the grid, sort the paricles and their ids into the grid
         update_particle_grid_positions();
-        for each (particle_more pm in particles_more){
+        for each (particle_more &pm in particles_more){
           // clear the list of neighbouring particles
           pm.neighbours.clear();
-          std::vector<uint8_t> possible_neighbours = get_possible_neighbours(pm.cell_id, pm.index);
-          for each (uint8_t particle_id in possible_neighbours){
+          std::vector<int> possible_neighbours = get_possible_neighbours(pm.cell_id, pm.index);
+          for each (int particle_id in possible_neighbours){
             // calculate the displacement given possible nighbour is from the particle in question
             float disp = (particles_basic[particle_id].pos - particles_basic[pm.index].pos).length();
             if (disp < _PARTICLE_DIAM * 0.5f){
@@ -138,8 +152,8 @@ namespace octet{
 
       /// @brief This function returns a vector of particle ids that are possible neighbours to a 
       /// particle in a given cell id.
-      std::vector<uint8_t> get_possible_neighbours(unsigned int cell_id, uint8_t particle_id){
-        std::vector<uint8_t> possible_neigbours;
+      std::vector<int> get_possible_neighbours(unsigned int cell_id, unsigned int particle_id){
+        std::vector<int> possible_neigbours;
         // detect edge cases and resize the for loops accordingly
         int left_index = (cell_id % _GRID_SIZE == 0) ? 0 : -1;            // is the cell in the left most column?
         int right_index = (cell_id % (_GRID_SIZE - 1) == 0) ? 1 : 2;       // is the cell in the right most column?
@@ -176,8 +190,8 @@ namespace octet{
           float density_near = 0;
           std::vector<float> distances;
           unsigned cell_id = particles_more[i].cell_id;
-          unsigned size_neighbours = particles_more[i].neighbours.size();
-          distances.resize(size_neighbours);
+          unsigned size_neighbours = get_max_value(particles_more[i].neighbours); // now returns the largest index in the array 
+          distances.resize(size_neighbours);    // WARNING NOT A COMPLETE FIX SOMETHING ON THIS NEEDS TO BE DONE
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
             if (n != i){ //to avoid being moved by itself!
@@ -289,28 +303,19 @@ namespace octet{
         printf("Applying viscosity.. ");
         apply_viscosity(time_inc);
 
-        //    printf("Advancing particles.. ");
+        printf("Advancing particles.. ");
         advance_particles(time_inc);
 
         printf("Updating neighbours.. ");
         update_neighbours();
 
-        printf("Relaxing double density.. ");
-        double_density_relaxation(time_inc);
+        //printf("Relaxing double density.. ");
+        //double_density_relaxation(time_inc);
 
-        //    printf("Colliding resolutions.. ");
+        //   printf("Colliding resolutions.. ");
         //   resolve_collisions(time_inc);
 
-        printf("Updating neighbours.. ");
-        update_neighbours();
-
-        printf("Relaxing double density.. ");
-        double_density_relaxation(time_inc);
-
-        printf("Colliding resolutions.. ");
-        resolve_collisions(time_inc);
-
-        //    printf("Updating velocity.. ");
+        printf("Updating velocity.. ");
         printf("Updating velocity.. ");
         update_velocity(time_inc);
       }
