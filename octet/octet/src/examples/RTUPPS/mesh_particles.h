@@ -89,9 +89,9 @@ namespace octet{
         for (unsigned p = 0; p != num_particles; ++p){
           // Apply gravity
           float inc_vel = -9.8f * time_inc;
-          if (p == 0) printf("\nStart Velocity: %f\n", particles_more[p].vel.y());
+          //if (p == 0) printf("\nStart Velocity: %f\n", particles_more[p].vel.y());
           particles_more[p].vel.y() += inc_vel;
-          if (p == 0) printf("Mid Velocity: %f", particles_more[p].vel.y());
+          //if (p == 0) printf("Mid Velocity: %f", particles_more[p].vel.y());
           //potentially for the future use mouse x,y inputs
           //p.vec += forces_from_touch_input(p);
         }
@@ -124,7 +124,7 @@ namespace octet{
       void advance_particles(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
           particles_more[p].pos_prev = particles_basic[p].pos;
-          if (p == 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
+          //if (p == 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
           vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
           particles_basic[p].pos += inc_pos;
         }
