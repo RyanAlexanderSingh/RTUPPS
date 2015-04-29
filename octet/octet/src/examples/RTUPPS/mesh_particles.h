@@ -221,21 +221,6 @@ namespace octet{
       /// @brief This function is in charge of resolving the collision between the particles and the world (bounding box!)
       /// This function requires the construction and updating of the distance field
       void resolve_collisions(float time_inc){
-         // for each particle
-            // get the particle index from the distance field (whatever that means)
-            // if the index is not == -1 (for whatever reason)
-                // get the distance from the distance field
-                // if the distance is large then -collisionRadius
-                  // calculate temp velocity (is this stored in particle_more?)
-                  // calculate the normal and tangent to the plane || point of contact
-                  // caluclate tangential fraction fo the resultant velocity = timeStep * friction * (vel dot tangent) * tangent
-                  // update the particle position and apply collision smoothing
-      }
-
-      /// @brief This function will update the distance field required for resolving collisions
-      /// the distance field holds a pair of vec3s for each particle in the system. High memory consumption
-      /// the first of these vec3s holds the distance to the closest wall and the second the normal.
-      void update_distance_field(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
           int index = 2; //distanceField.GetIndex(p.pos)
           if (index != -1){
@@ -288,7 +273,7 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
 
-        float time_inc = elapsed_seconds.count();
+        float time_inc = elapsed_seconds.count()*0.5f;
         printf(" \n \ntime_inc.. %f", time_inc);
         apply_external_forces(time_inc);
 
@@ -301,7 +286,7 @@ namespace octet{
         apply_external_forces(time_inc);
 
         printf("Applying viscosity.. ");
-        apply_viscosity(time_inc);
+        //apply_viscosity(time_inc);
 
         printf("Advancing particles.. ");
         advance_particles(time_inc);
@@ -313,21 +298,11 @@ namespace octet{
         //double_density_relaxation(time_inc);
 
         //   printf("Colliding resolutions.. ");
-        //   resolve_collisions(time_inc);
+        resolve_collisions(time_inc);
 
         printf("Updating velocity.. ");
         printf("Updating velocity.. ");
         update_velocity(time_inc);
-      }
-
-      /// @brief This funcion intialize the distance field, so the particles can collide with the world
-      /// This function has to be called in the init function. 
-      void initialize_distance_field(){
-        // Reserve space in the distance field vector
-        
-        // implement code from pseudocode
-        // CODE GOES HERE!
-        //
       }
 
     public:
