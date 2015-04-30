@@ -105,14 +105,16 @@ namespace octet{
           unsigned size_neighbours = particles_more[p].neighbours.size();
           for (unsigned i = 0; i != size_neighbours; ++i){
             unsigned n = particles_more[p].neighbours[i];
-            vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
-            float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
-            if (vel_inward > 0.0f){
-              float length = distance.length();
-              vel_inward /= length;
-              float q = length / particle_radius;
-              vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance;
-              particles_more[p].vel -= impulse;
+            if (i != n){
+              vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
+              float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
+              if (vel_inward > 0.0f){
+                float length = distance.length();
+                vel_inward /= length;
+                float q = length / particle_radius;
+                vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance;
+                particles_more[p].vel -= impulse;
+              }
             }
           }
         }
@@ -188,10 +190,9 @@ namespace octet{
         for (unsigned i = 0; i != num_particles; ++i){
           float density = 0;
           float density_near = 0;
-          std::vector<float> distances;
+          std::array<float,_NUM_PARTICLES_> distances;
           unsigned cell_id = particles_more[i].cell_id;
-          unsigned size_neighbours = get_max_value(particles_more[i].neighbours); // now returns the largest index in the array 
-          distances.resize(size_neighbours);    // WARNING NOT A COMPLETE FIX SOMETHING ON THIS NEEDS TO BE DONE
+          unsigned size_neighbours = particles_more[i].neighbours.size(); 
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
             if (n != i){ //to avoid being moved by itself!
@@ -273,8 +274,8 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
 
-        float time_inc = elapsed_seconds.count()*0.5f;
-        printf(" \n \ntime_inc.. %f", time_inc);
+        float time_inc = elapsed_seconds.count()*0.1f;
+        printf(" \n\ntime_inc.. %f", time_inc);
         apply_external_forces(time_inc);
 
         //    printf("Applying viscosity.. ");
@@ -282,26 +283,24 @@ namespace octet{
         if (time_inc > 1.0f){
           assert(0);
         }
-        printf("time_inc.. ");
         apply_external_forces(time_inc);
 
-        printf("Applying viscosity.. ");
-        //apply_viscosity(time_inc);
+        //printf("Applying viscosity.. ");
+        apply_viscosity(time_inc);
 
-        printf("Advancing particles.. ");
+        //printf("Advancing particles.. ");
         advance_particles(time_inc);
 
-        printf("Updating neighbours.. ");
+        //printf("Updating neighbours.. ");
         update_neighbours();
 
         //printf("Relaxing double density.. ");
-        //double_density_relaxation(time_inc);
+        double_density_relaxation(time_inc);
 
-        //   printf("Colliding resolutions.. ");
+        //printf("Colliding resolutions.. ");
         resolve_collisions(time_inc);
 
-        printf("Updating velocity.. ");
-        printf("Updating velocity.. ");
+        //printf("Updating velocity.. ");
         update_velocity(time_inc);
       }
 
@@ -323,8 +322,6 @@ namespace octet{
         grid_size = _GRID_SIZE;
         int sqrt_num_particles = sqrt(num_particles);
         int index = 0;
-
-        initialize_distance_field();
 
         if (type == 0){          // Initializate the particles with fixed positions
           for (int i = 0; i < sqrt_num_particles; ++i){
