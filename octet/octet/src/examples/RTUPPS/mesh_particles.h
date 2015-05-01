@@ -75,6 +75,7 @@ namespace octet{
       float collision_radius;
       float friction;
       float collision_softness;
+      float total_time;
 
       size_t num_particles;
       int grid_size;
@@ -130,6 +131,20 @@ namespace octet{
           vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
           particles_basic[p].pos += inc_pos;
         }
+      }
+
+      void print_neighbours(){
+        printf("\nParticle 0 neighbours\n");
+        unsigned neighoburs_size = particles_more[0].neighbours.size();
+        for (unsigned p = 0; p != neighoburs_size; ++p){
+          printf("p: %i ", particles_more[0].neighbours[p]);
+        }
+        printf("\nParticle 6 neighbours\n");
+        neighoburs_size = particles_more[6].neighbours.size();
+        for (unsigned p = 0; p != neighoburs_size; ++p){
+          printf("p: %i ", particles_more[6].neighbours[p]);
+        }
+        printf("\n");
       }
 
       /// @brief This function updates the list of neighbouring particles that each
@@ -274,28 +289,28 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
 
-        float time_inc = elapsed_seconds.count()*0.1f;
+        total_time += 0.01f;
+        float time_inc = total_time; //Use this line while debugging
+        //float time_inc = elapsed_seconds.count()*0.5f; //Use this line for the release
         printf(" \n\ntime_inc.. %f", time_inc);
         apply_external_forces(time_inc);
 
         //    printf("Applying viscosity.. ");
         //     apply_viscosity(time_inc);
-        if (time_inc > 1.0f){
-          assert(0);
-        }
+
         apply_external_forces(time_inc);
 
         //printf("Applying viscosity.. ");
-        apply_viscosity(time_inc);
+        //apply_viscosity(time_inc);
 
         //printf("Advancing particles.. ");
         advance_particles(time_inc);
 
         //printf("Updating neighbours.. ");
         update_neighbours();
-
+        print_neighbours();
         //printf("Relaxing double density.. ");
-        double_density_relaxation(time_inc);
+        //double_density_relaxation(time_inc);
 
         //printf("Colliding resolutions.. ");
         resolve_collisions(time_inc);
@@ -311,7 +326,7 @@ namespace octet{
       void init(int type = 0){
         particle_radius = _PARTICLE_DIAM * 0.5f;
         particle_mass = 1.0f;
-
+        total_time = 0.0f;
         collision_radius = particle_radius + 0.1f;
         friction = 0.5f;
         collision_softness = 0.6f;
