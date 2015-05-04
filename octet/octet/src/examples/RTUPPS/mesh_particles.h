@@ -205,9 +205,9 @@ namespace octet{
         for (unsigned i = 0; i != num_particles; ++i){
           float density = 0;
           float density_near = 0;
-          std::array<float,_NUM_PARTICLES_> distances;
+          std::array<float, _NUM_PARTICLES_> distances;
           unsigned cell_id = particles_more[i].cell_id;
-          unsigned size_neighbours = particles_more[i].neighbours.size(); 
+          unsigned size_neighbours = particles_more[i].neighbours.size();
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
             if (n != i){ //to avoid being moved by itself!
@@ -264,6 +264,8 @@ namespace octet{
       /// @brief This function updates the grid (an array of vectors) with a vector for each cell
       /// that contains the particle ids of the particles currently within that cell
       void update_particle_grid_positions(){
+        // first clear the grid particle hash
+        grid_particles_id.clear();
         // for each particle in the particle list determine its cell index
         unsigned int particle_id = 0;
         for each (particle_basic pb in particles_basic){
@@ -354,7 +356,7 @@ namespace octet{
             }
           }
         }
-        
+
         // add the particles to the grid
         update_neighbours();
 
