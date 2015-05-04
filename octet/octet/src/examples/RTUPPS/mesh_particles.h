@@ -91,7 +91,7 @@ namespace octet{
           // Apply gravity
           float inc_vel = -9.8f * time_inc;
           //if (p == 0) printf("\nStart Velocity: %f\n", particles_more[p].vel.y());
-          particles_more[p].vel.y() += inc_vel;
+          particles_more[p].vel += vec3(0.0f, inc_vel, 0.0f);
           //if (p == 0) printf("Mid Velocity: %f", particles_more[p].vel.y());
           //potentially for the future use mouse x,y inputs
           //p.vec += forces_from_touch_input(p);
@@ -108,15 +108,13 @@ namespace octet{
             unsigned n = particles_more[p].neighbours[i];
             vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
             float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
-            if (vel_inward > 0.0f){
+            if (vel_inward > 0.03f){
               float length = distance.length();
               vel_inward /= length;
+              distance = distance.normalize();
               float q = length / particle_radius;
-              vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance / length;
+              vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance;
               particles_more[p].vel -= impulse;
-              if (std::abs(particles_more[p].vel.length()) > 10.0f){
-                assert(0);
-              }
             }
           }
         }
@@ -129,7 +127,7 @@ namespace octet{
         for (unsigned p = 0; p != num_particles; ++p){
           particles_more[p].pos_prev = particles_basic[p].pos;
           //if (p == 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
-          vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
+          vec3 inc_pos = particles_more[p].vel * time_inc;
           particles_basic[p].pos += inc_pos;
         }
       }
@@ -311,7 +309,7 @@ namespace octet{
         print_neighbours();
 
         //printf("Relaxing double density.. ");
-        //double_density_relaxation(time_inc);
+        double_density_relaxation(time_inc);
 
         //printf("Colliding resolutions.. ");
         resolve_collisions(time_inc);
@@ -329,7 +327,7 @@ namespace octet{
         particle_mass = 1.0f;
         total_time = 0.0f;
         sigma = 0.7978f; // water at 302K
-        beta = 0.0f;      // this is ideal water atm
+        beta = 0.5f;      // this is ideal water atm
         collision_radius = particle_radius + 0.1f;
         friction = 0.5f;
         collision_softness = 0.6f;
@@ -349,7 +347,7 @@ namespace octet{
               new_particle.phase = 0;
               particles_basic.push_back(new_particle);
               particle_more more_particle;
-              more_particle.vel = vec3(0.0f, 10.0f, 0.0f);
+              more_particle.vel = vec3(0.5f, 10.0f, 0.0f);
               more_particle.index = index++;
               more_particle.cell_id = -1;
               more_particle.neighbours.reserve(36); //maximum amount of particle neighbours: 9 cells with 4 particles in each
