@@ -237,17 +237,32 @@ namespace octet{
       /// This function requires the construction and updating of the distance field
       void resolve_collisions(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
-          int index = 2; //distanceField.GetIndex(p.pos)
-          if (index != -1){
-            float distance = particles_basic[p].pos.y() + 10.0f; //distanceField.GetDistance(index)
-            if (distance < 0.0f){ //distance > -collisionRadius
-              vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
-              vec3 normal = vec3(0.0f, 1.0f, 0.0f); //distanceField.getNormal(index);
-              vec3 tangent = vec3(1.0f, 0.0f, 0.0f); //PerpendicularCCW(normal);
-              tangent = time_inc*friction*(direction.dot(tangent))*tangent;
-              particles_basic[p].pos -= tangent;
-              particles_basic[p].pos -= collision_softness*(distance)*normal;
-            }
+          float distance = particles_basic[p].pos.y() + 10.0f; //distanceField.GetDistance(index)
+          if (distance < 0.0f){ //distance > -collisionRadius
+            vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
+            vec3 normal = vec3(0.0f, 1.0f, 0.0f); //distanceField.getNormal(index);
+            vec3 tangent = vec3(1.0f, 0.0f, 0.0f); //PerpendicularCCW(normal);
+            tangent = time_inc*friction*(direction.dot(tangent))*tangent;
+            particles_basic[p].pos -= tangent;
+            particles_basic[p].pos -= collision_softness*(distance)*normal*.5f;
+          }
+          if (particles_basic[p].pos.x() < -3.0f){
+            vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
+            vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
+            vec3 tangent = vec3(0.0f, 1.0f, 0.0f); //PerpendicularCCW(normal);
+            tangent = time_inc*friction*(direction.dot(tangent))*tangent;
+            particles_basic[p].pos -= tangent;
+            float distance_temp = particles_basic[p].pos.x() + 3.0f;
+            particles_basic[p].pos -= collision_softness*distance_temp*normal*.5f;
+          }
+          if (particles_basic[p].pos.x() > 3.0f){
+            vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
+            vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
+            vec3 tangent = vec3(0.0f, 1.0f, 0.0f); //PerpendicularCCW(normal);
+            tangent = time_inc*friction*(direction.dot(tangent))*tangent;
+            particles_basic[p].pos -= tangent;
+            float distance_temp = particles_basic[p].pos.x() - 3.0f;
+            particles_basic[p].pos -= collision_softness*distance_temp*normal*.5f;
           }
         }
       }
