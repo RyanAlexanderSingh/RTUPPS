@@ -106,15 +106,16 @@ namespace octet{
           unsigned size_neighbours = particles_more[p].neighbours.size();
           for (unsigned i = 0; i != size_neighbours; ++i){
             unsigned n = particles_more[p].neighbours[i];
-            if (i != n){  // can remove this
-              vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
-              float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
-              if (vel_inward > 0.0f){
-                float length = distance.length();
-                vel_inward /= length;
-                float q = length / particle_radius;
-                vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance; // needs to be changed to distance / length
-                particles_more[p].vel -= impulse;
+            vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
+            float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
+            if (vel_inward > 0.0f){
+              float length = distance.length();
+              vel_inward /= length;
+              float q = length / particle_radius;
+              vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance / length;
+              particles_more[p].vel -= impulse;
+              if (std::abs(particles_more[p].vel.length()) > 10.0f){
+                assert(0);
               }
             }
           }
@@ -130,7 +131,6 @@ namespace octet{
           //if (p == 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
           vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
           particles_basic[p].pos += inc_pos;
-          // update grid positions
         }
       }
 
@@ -292,7 +292,7 @@ namespace octet{
         std::chrono::duration<float> elapsed_seconds = now - before;
         before = now;
 
-        total_time += 0.01f;
+        total_time += 0.001f;
         float time_inc = total_time; //Use this line while debugging
         //float time_inc = elapsed_seconds.count()*0.5f; //Use this line for the release
         printf(" \n\ntime_inc.. %f", time_inc);
@@ -328,6 +328,8 @@ namespace octet{
         particle_radius = _PARTICLE_DIAM * 0.5f;
         particle_mass = 1.0f;
         total_time = 0.0f;
+        sigma = 0.7978f; // water at 302K
+        beta = 0.0f;      // this is ideal water atm
         collision_radius = particle_radius + 0.1f;
         friction = 0.5f;
         collision_softness = 0.6f;
