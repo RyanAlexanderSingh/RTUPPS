@@ -295,12 +295,12 @@ namespace octet{
         float time_inc = total_time; //Use this line while debugging
         //float time_inc = elapsed_seconds.count()*0.5f; //Use this line for the release
         printf(" \n\ntime_inc.. %f", time_inc);
+
+        // printf("Applying External forces\n");
         apply_external_forces(time_inc);
 
-        //    printf("Applying viscosity.. ");
-        //     apply_viscosity(time_inc);
-
-        apply_external_forces(time_inc);
+        //printf("Applying viscosity.. ");
+        //apply_viscosity(time_inc);
 
         //printf("Applying viscosity.. ");
         //apply_viscosity(time_inc);
@@ -311,6 +311,7 @@ namespace octet{
         //printf("Updating neighbours.. ");
         update_neighbours();
         print_neighbours();
+
         //printf("Relaxing double density.. ");
         //double_density_relaxation(time_inc);
 
