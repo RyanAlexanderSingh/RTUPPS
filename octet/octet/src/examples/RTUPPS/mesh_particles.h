@@ -106,14 +106,14 @@ namespace octet{
           unsigned size_neighbours = particles_more[p].neighbours.size();
           for (unsigned i = 0; i != size_neighbours; ++i){
             unsigned n = particles_more[p].neighbours[i];
-            if (i != n){
+            if (i != n){  // can remove this
               vec3 distance = particles_basic[n].pos - particles_basic[p].pos;
               float vel_inward = (particles_more[p].vel - particles_more[n].vel).dot(distance);
               if (vel_inward > 0.0f){
                 float length = distance.length();
                 vel_inward /= length;
                 float q = length / particle_radius;
-                vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance;
+                vec3 impulse = 0.5f*time_inc*(1.0f - q)*(sigma*vel_inward + beta*vel_inward*vel_inward)*distance; // needs to be changed to distance / length
                 particles_more[p].vel -= impulse;
               }
             }
@@ -130,6 +130,7 @@ namespace octet{
           //if (p == 0) printf("\nUsing velocity: %f", particles_more[p].vel.y());
           vec3 inc_pos = vec3(0.0f, particles_more[p].vel.y()*time_inc, 0.0f);
           particles_basic[p].pos += inc_pos;
+          // update grid positions
         }
       }
 
@@ -300,10 +301,7 @@ namespace octet{
         apply_external_forces(time_inc);
 
         //printf("Applying viscosity.. ");
-        //apply_viscosity(time_inc);
-
-        //printf("Applying viscosity.. ");
-        //apply_viscosity(time_inc);
+        apply_viscosity(time_inc);
 
         //printf("Advancing particles.. ");
         advance_particles(time_inc);
