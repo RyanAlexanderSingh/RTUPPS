@@ -244,7 +244,7 @@ namespace octet{
             vec3 tangent = vec3(1.0f, 0.0f, 0.0f); //PerpendicularCCW(normal);
             tangent = time_inc*friction*(direction.dot(tangent))*tangent;
             particles_basic[p].pos -= tangent;
-            particles_basic[p].pos -= collision_softness*(distance)*normal*.5f;
+            particles_basic[p].pos -= collision_softness*(distance)*normal;
           }
           if (particles_basic[p].pos.x() < -3.0f){
             vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
@@ -331,6 +331,14 @@ namespace octet{
 
         //printf("Updating velocity.. ");
         update_velocity(time_inc);
+
+        for (int i = 0; i != num_particles; ++i){
+          if (particles_basic[i].pos.x() < -100 ||
+            particles_basic[i].pos.x() > 100){
+            particles_basic[i].pos = vec3(0.0f, 10.0f, 0.0f);
+            particles_more[i].vel = vec3(0.1f, 0.0f, 0.0f);
+          }
+        }
       }
 
     public:
