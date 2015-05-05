@@ -13,7 +13,7 @@
 
 namespace octet{
   // grid size determines the half extents of the simulation space (ie 50 -> cube with 100 cells in each dimension)
-  enum { _NUM_PARTICLES_ = 100, _PARTICLE_DIAM = 1, _GRID_SIZE = 20, _SMOOTHING_H_ = 1, _REST_DENSITY_ = 1000 };
+  enum { _NUM_PARTICLES_ = 800, _PARTICLE_DIAM = 1, _GRID_SIZE = 20, _SMOOTHING_H_ = 1, _REST_DENSITY_ = 1000 };
 
   // this function converts three floats into a RGBA 8 bit color
   static uint32_t make_color(float r, float g, float b) {
@@ -204,13 +204,13 @@ namespace octet{
         for (unsigned i = 0; i != num_particles; ++i){
           float density = 0;
           float density_near = 0;
-          std::array<float, _NUM_PARTICLES_> distances;
-          unsigned cell_id = particles_more[i].cell_id;
           unsigned size_neighbours = particles_more[i].neighbours.size();
+          std::vector<float> distances;
+          distances.resize(size_neighbours);
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
-            distances[n] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
-            float q = 1.0f - (distances[n] / particle_radius);
+            distances[j] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
+            float q = 1.0f - (distances[j] / particle_radius);
             density += q*q;
             density_near += q*q*q;
           }
@@ -219,8 +219,8 @@ namespace octet{
           vec3 delta = vec3(0);
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
-            float q = 1.0f - (distances[n] / particle_radius);
-            vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[n];
+            float q = 1.0f - (distances[j] / particle_radius);
+            vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[j];
             vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
             particles_basic[n].pos += D;
             delta -= D;
@@ -240,25 +240,37 @@ namespace octet{
             vec3 tangent = vec3(1.0f, 0.0f, 0.0f); //PerpendicularCCW(normal);
             tangent = time_inc*friction*(direction.dot(tangent))*tangent;
             particles_basic[p].pos -= tangent;
-            particles_basic[p].pos -= collision_softness*(distance)*normal;
+            vec3 temp = collision_softness*(distance)*normal;
+            if (abs(temp.length()) > 1.0f){
+              temp = temp / abs(temp.length());
+            }
+            particles_basic[p].pos -= temp;
           }
-          if (particles_basic[p].pos.x() < -3.0f){
+          if (particles_basic[p].pos.x() < -4.0f){
             vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
             vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
             vec3 tangent = vec3(0.0f, 1.0f, 0.0f); //PerpendicularCCW(normal);
             tangent = time_inc*friction*(direction.dot(tangent))*tangent;
             particles_basic[p].pos -= tangent;
-            float distance_temp = particles_basic[p].pos.x() + 3.0f;
-            particles_basic[p].pos -= collision_softness*distance_temp*normal*.5f;
+            float distance_temp = particles_basic[p].pos.x() + 4.0f;
+            vec3 temp = collision_softness*distance_temp*normal*.01f;
+            if (abs(temp.length()) > 0.50f){
+              temp = temp / abs(temp.length());
+            }
+            particles_basic[p].pos -= temp;
           }
-          if (particles_basic[p].pos.x() > 3.0f){
+          if (particles_basic[p].pos.x() > 4.0f){
             vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
             vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
             vec3 tangent = vec3(0.0f, 1.0f, 0.0f); //PerpendicularCCW(normal);
             tangent = time_inc*friction*(direction.dot(tangent))*tangent;
             particles_basic[p].pos -= tangent;
-            float distance_temp = particles_basic[p].pos.x() - 3.0f;
-            particles_basic[p].pos -= collision_softness*distance_temp*normal*.5f;
+            float distance_temp = particles_basic[p].pos.x() - 4.0f;
+            vec3 temp = collision_softness*distance_temp*normal*.01f;
+            if (abs(temp.length()) > 0.5f){
+              temp = temp / abs(temp.length());
+            }
+            particles_basic[p].pos -= temp;
           }
         }
       }
@@ -302,22 +314,22 @@ namespace octet{
         before = now;
 
         total_time += 0.001f;
-        float time_inc = total_time; //Use this line while debugging
-        //float time_inc = elapsed_seconds.count()*0.5f; //Use this line for the release
+        //float time_inc = total_time; //Use this line while debugging
+        float time_inc = elapsed_seconds.count()*0.25f; //Use this line for the release
         printf(" \n\ntime_inc.. %f", time_inc);
 
         // printf("Applying External forces\n");
         apply_external_forces(time_inc);
 
         //printf("Applying viscosity.. ");
-        apply_viscosity(time_inc);
+        //apply_viscosity(time_inc);
 
         //printf("Advancing particles.. ");
         advance_particles(time_inc);
 
         //printf("Updating neighbours.. ");
         update_neighbours();
-        print_neighbours();
+        //print_neighbours();
 
         //printf("Relaxing double density.. ");
         double_density_relaxation(time_inc);
@@ -328,13 +340,6 @@ namespace octet{
         //printf("Updating velocity.. ");
         update_velocity(time_inc);
 
-        for (int i = 0; i != num_particles; ++i){
-          if (particles_basic[i].pos.x() < -100 ||
-            particles_basic[i].pos.x() > 100){
-            particles_basic[i].pos = vec3(0.0f, 10.0f, 0.0f);
-            particles_more[i].vel = vec3(0.1f, 0.0f, 0.0f);
-          }
-        }
       }
 
     public:
@@ -342,14 +347,14 @@ namespace octet{
 
       /// @brief This will initilize the mesh!
       void init(int type = 0){
-        particle_radius = _PARTICLE_DIAM * 0.5f;
+        particle_radius = _PARTICLE_DIAM * 0.25f;
         particle_mass = 1.0f;
         total_time = 0.0f;
         sigma = 0.7978f; // water at 302K
         beta = 0.5f;      // this is ideal water atm
         collision_radius = particle_radius + 0.1f;
         friction = 0.5f;
-        collision_softness = 0.6f;
+        collision_softness = 0.2f;
         k = 1.0f; // stiffness
         k_near = 1.0f; // stiffness
         p_0 = 1.0f; // rest_density
@@ -362,7 +367,7 @@ namespace octet{
           for (int i = 0; i < sqrt_num_particles; ++i){
             for (int j = 0; j < sqrt_num_particles; ++j){
               particle_basic new_particle;
-              new_particle.pos = vec3(i * 0.5f - 5, j * 0.5f - 5, -5);
+              new_particle.pos = vec3(i * 0.2f - 3, j * 0.2f - 3, -5);
               new_particle.phase = 0;
               particles_basic.push_back(new_particle);
               particle_more more_particle;
@@ -385,7 +390,7 @@ namespace octet{
         clear_attributes();
         add_attribute(attribute_pos, 3, GL_FLOAT, 0);
         add_attribute(attribute_color, 4, GL_UNSIGNED_BYTE, 12, GL_TRUE);
-        glPointSize(5.0f);
+        glPointSize(2.5f);
 
         //This block below is just copying into the attribute all the particles generated before
         gl_resource::wolock vlock(get_vertices());
