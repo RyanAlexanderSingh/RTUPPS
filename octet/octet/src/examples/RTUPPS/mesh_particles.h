@@ -209,25 +209,21 @@ namespace octet{
           unsigned size_neighbours = particles_more[i].neighbours.size();
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
-            if (n != i){ //to avoid being moved by itself!
-              distances[n] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
-              float q = 1.0f - (distances[n] / particle_radius);
-              density += q*q;
-              density_near += q*q*q;
-            }
+            distances[n] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
+            float q = 1.0f - (distances[n] / particle_radius);
+            density += q*q;
+            density_near += q*q*q;
           }
           density = k * (density - p_0);
           density_near = k_near * density_near;
           vec3 delta = vec3(0);
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
-            if (i != n){ //to avoid being moved by itself!
-              float q = 1.0f - (distances[n] / particle_radius);
-              vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[n];
-              vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
-              particles_basic[n].pos += D;
-              delta -= D;
-            }
+            float q = 1.0f - (distances[n] / particle_radius);
+            vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[n];
+            vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
+            particles_basic[n].pos += D;
+            delta -= D;
           }
           particles_basic[i].pos += delta;
         }
