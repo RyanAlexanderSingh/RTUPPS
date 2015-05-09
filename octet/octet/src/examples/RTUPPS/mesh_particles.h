@@ -13,7 +13,7 @@
 
 namespace octet{
   // grid size determines the half extents of the simulation space (ie 50 -> cube with 100 cells in each dimension)
-  enum { _NUM_PARTICLES_ = 800, _PARTICLE_DIAM = 1, _GRID_SIZE = 20, _SMOOTHING_H_ = 1, _REST_DENSITY_ = 1000 };
+  enum { _NUM_PARTICLES_ = 900, _PARTICLE_DIAM = 1, _GRID_SIZE = 20, _SMOOTHING_H_ = 1, _REST_DENSITY_ = 1000 };
 
   // this function converts three floats into a RGBA 8 bit color
   static uint32_t make_color(float r, float g, float b) {
@@ -30,6 +30,7 @@ namespace octet{
   struct particle_more{
     unsigned cell_id;
     vec3 pos_prev;
+    vec3 pos_next;
     vec3 vel;
     int index;
     std::vector<int> neighbours; // neighbouring particles
@@ -64,8 +65,6 @@ namespace octet{
     class mesh_particles : public mesh{
       dynarray<particle_basic> particles_basic;
       dynarray<particle_more> particles_more;
-      float particle_mass;
-      float particle_invmass;
 
       float k; // stiffness
       float k_near; // stiffness
@@ -201,16 +200,20 @@ namespace octet{
       /// We are avoiding to use a particle with itself, in case that it's considered its own 
       ///   neighbour
       void double_density_relaxation(float time_inc){
+        std::array<float, _NUM_PARTICLES_> distances;
+        for (unsigned i = 0; i != num_particles; ++i)
+          particles_more[i].pos_next = particles_basic[i].pos;
         for (unsigned i = 0; i != num_particles; ++i){
           float density = 0;
           float density_near = 0;
+          unsigned cell_id = particles_more[i].cell_id;
           unsigned size_neighbours = particles_more[i].neighbours.size();
-          std::vector<float> distances;
-          distances.resize(size_neighbours);
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
-            distances[j] = vec3(particles_basic[i].pos - particles_basic[n].pos).length();
-            float q = 1.0f - (distances[j] / particle_radius);
+            distances[n] = abs(vec3(particles_basic[i].pos - particles_basic[n].pos).length());
+            if (distances[n] > 3.f*particle_radius)
+              continue;
+            float q = 1.0f - (distances[n] / particle_radius);
             density += q*q;
             density_near += q*q*q;
           }
@@ -219,20 +222,51 @@ namespace octet{
           vec3 delta = vec3(0);
           for (unsigned j = 0; j != size_neighbours; ++j){
             unsigned n = particles_more[i].neighbours[j];
-            float q = 1.0f - (distances[j] / particle_radius);
-            vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[j];
+            if (distances[n] > 3.f*particle_radius)
+              continue;
+            float q = 1.0f - (distances[n] / particle_radius);
+            vec3 direction = vec3(particles_basic[i].pos - particles_basic[n].pos) / distances[n];
             vec3 D = 0.5*time_inc*time_inc*(density*q + density_near*q*q)*direction;
-            particles_basic[n].pos += D;
+            particles_more[n].pos_next += D;
             delta -= D;
           }
           particles_basic[i].pos += delta;
         }
+        
+        for (unsigned i = 0; i != num_particles; ++i)
+          particles_basic[i].pos = particles_more[i].pos_next;
       }
 
       /// @brief This function is in charge of resolving the collision between the particles and the world (bounding box!)
       /// This function requires the construction and updating of the distance field
       void resolve_collisions(float time_inc){
         for (unsigned p = 0; p != num_particles; ++p){
+          if (particles_basic[p].pos.x() < -5.0f){
+            vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
+            vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
+            vec3 tangent = vec3(0.0f, 1.0f, 0.0f); //PerpendicularCCW(normal);
+            tangent = time_inc*friction*(direction.dot(tangent))*tangent;
+            particles_basic[p].pos -= tangent;
+            float distance_temp = particles_basic[p].pos.x() + 5.0f;
+            vec3 temp = collision_softness*distance_temp*normal*.1f;
+            if (abs(temp.length()) > 1.f){
+              temp = temp / abs(temp.length());
+            }
+            particles_basic[p].pos -= temp;
+          }
+          if (particles_basic[p].pos.x() > 5.0f){
+            vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
+            vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
+            vec3 tangent = vec3(0.0f, -1.0f, 0.0f); //PerpendicularCCW(normal);
+            tangent = time_inc*friction*(direction.dot(tangent))*tangent;
+            particles_basic[p].pos -= tangent;
+            float distance_temp = particles_basic[p].pos.x() - 5.0f;
+            vec3 temp = collision_softness*distance_temp*normal*.1f;
+            if (abs(temp.length()) > 1.f){
+              temp = temp / abs(temp.length());
+            }
+            particles_basic[p].pos -= temp;
+          }
           float distance = particles_basic[p].pos.y() + 10.0f; //distanceField.GetDistance(index)
           if (distance < 0.0f){ //distance > -collisionRadius
             vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
@@ -241,33 +275,7 @@ namespace octet{
             tangent = time_inc*friction*(direction.dot(tangent))*tangent;
             particles_basic[p].pos -= tangent;
             vec3 temp = collision_softness*(distance)*normal;
-            if (abs(temp.length()) > 1.0f){
-              temp = temp / abs(temp.length());
-            }
-            particles_basic[p].pos -= temp;
-          }
-          if (particles_basic[p].pos.x() < -4.0f){
-            vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
-            vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
-            vec3 tangent = vec3(0.0f, 1.0f, 0.0f); //PerpendicularCCW(normal);
-            tangent = time_inc*friction*(direction.dot(tangent))*tangent;
-            particles_basic[p].pos -= tangent;
-            float distance_temp = particles_basic[p].pos.x() + 4.0f;
-            vec3 temp = collision_softness*distance_temp*normal*.01f;
-            if (abs(temp.length()) > 0.50f){
-              temp = temp / abs(temp.length());
-            }
-            particles_basic[p].pos -= temp;
-          }
-          if (particles_basic[p].pos.x() > 4.0f){
-            vec3 direction = (particles_basic[p].pos - particles_more[p].pos_prev).normalize();
-            vec3 normal = vec3(1.0f, 0.0f, 0.0f); //distanceField.getNormal(index);
-            vec3 tangent = vec3(0.0f, 1.0f, 0.0f); //PerpendicularCCW(normal);
-            tangent = time_inc*friction*(direction.dot(tangent))*tangent;
-            particles_basic[p].pos -= tangent;
-            float distance_temp = particles_basic[p].pos.x() - 4.0f;
-            vec3 temp = collision_softness*distance_temp*normal*.01f;
-            if (abs(temp.length()) > 0.5f){
+            if (abs(temp.length()) > 2.0f){
               temp = temp / abs(temp.length());
             }
             particles_basic[p].pos -= temp;
@@ -316,9 +324,9 @@ namespace octet{
         total_time += 0.001f;
         //float time_inc = total_time; //Use this line while debugging
         float time_inc = elapsed_seconds.count()*0.25f; //Use this line for the release
-        printf(" \n\ntime_inc.. %f", time_inc);
 
-        // printf("Applying External forces\n");
+
+        //printf("Applying External forces\n");
         apply_external_forces(time_inc);
 
         //printf("Applying viscosity.. ");
@@ -348,7 +356,6 @@ namespace octet{
       /// @brief This will initilize the mesh!
       void init(int type = 0){
         particle_radius = _PARTICLE_DIAM * 0.25f;
-        particle_mass = 1.0f;
         total_time = 0.0f;
         sigma = 0.7978f; // water at 302K
         beta = 0.5f;      // this is ideal water atm
@@ -364,14 +371,14 @@ namespace octet{
         int index = 0;
 
         if (type == 0){          // Initializate the particles with fixed positions
-          for (int i = 0; i < sqrt_num_particles; ++i){
-            for (int j = 0; j < sqrt_num_particles; ++j){
+          for (int i = 0; i < sqrt_num_particles/2.f; ++i){
+            for (int j = 0; j < sqrt_num_particles*2.f; ++j){
               particle_basic new_particle;
-              new_particle.pos = vec3(i * 0.2f - 3, j * 0.2f - 3, -5);
+              new_particle.pos = vec3(i * 0.3f - 5.f, j * 0.3f-9.0f, -5.0f);
               new_particle.phase = 0;
               particles_basic.push_back(new_particle);
               particle_more more_particle;
-              more_particle.vel = vec3(0.5f, 10.0f, 0.0f);
+              more_particle.vel = vec3(0.2f, 1.0f, 0.0f);
               more_particle.index = index++;
               more_particle.cell_id = -1;
               more_particle.neighbours.reserve(36); //maximum amount of particle neighbours: 9 cells with 4 particles in each
